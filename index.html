@@ -1,0 +1,2694 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BULK — Elite Cards</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Cormorant:ital,wght@0,700;1,700&family=Space+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --cream: #F2EEE4;
+            --cream2: #E8E2D4;
+            --ink: #0E0D0A;
+            --ink2: #1A1916;
+            --ink3: #2A2924;
+            --gold: #C8A96E;
+            --gold2: #A8863E;
+            --muted: rgba(242, 238, 228, 0.35);
+            --border: rgba(242, 238, 228, 0.1);
+            --border2: rgba(200, 169, 110, 0.2);
+        }
+
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Cormorant Garamond', serif;
+            background: var(--ink);
+            color: var(--cream);
+            min-height: 100vh;
+            overflow-x: hidden;
+            cursor: none;
+        }
+
+        #cur {
+            position: fixed;
+            width: 8px;
+            height: 8px;
+            background: var(--cream);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            mix-blend-mode: difference;
+            transition: transform 0.15s;
+        }
+
+        #cur-ring {
+            position: fixed;
+            width: 32px;
+            height: 32px;
+            border: 1px solid rgba(200, 169, 110, 0.5);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9998;
+            transform: translate(-50%, -50%);
+            transition: all 0.25s cubic-bezier(.23, 1, .32, 1);
+        }
+
+        .grain {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0.04;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        #star-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 22px 56px;
+            background: linear-gradient(to bottom, rgba(14, 13, 10, 0.92) 0%, transparent 100%);
+        }
+
+        .nav-logo {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 300;
+            font-size: 22px;
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            color: var(--cream);
+        }
+
+        .nav-logo::before {
+            content: '✦ ';
+            color: var(--gold);
+            font-size: 14px;
+        }
+
+        .nav-badge {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            color: rgba(200, 169, 110, 0.7);
+            padding: 7px 18px;
+            border: 1px solid rgba(200, 169, 110, 0.2);
+            background: rgba(200, 169, 110, 0.04);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-dot {
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--gold);
+            animation: blink 2s infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.2;
+            }
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 0;
+        }
+
+        .nav-tab {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            padding: 8px 18px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.3);
+            background: transparent;
+            cursor: none;
+            transition: all 0.2s;
+        }
+
+        .nav-tab:first-child {
+            border-right: none;
+        }
+
+        .nav-tab.active,
+        .nav-tab:hover {
+            color: var(--gold);
+            border-color: rgba(200, 169, 110, 0.3);
+            background: rgba(200, 169, 110, 0.04);
+        }
+
+        @keyframes glitchA {
+
+            0%,
+            88%,
+            100% {
+                transform: translate(0);
+                opacity: 0;
+            }
+
+            89% {
+                transform: translate(-4px, 1px);
+                opacity: 1;
+            }
+
+            91% {
+                transform: translate(3px, -1px);
+                opacity: 1;
+            }
+
+            93% {
+                transform: translate(0);
+                opacity: 0;
+            }
+        }
+
+        @keyframes glitchB {
+
+            0%,
+            88%,
+            100% {
+                transform: translate(0);
+                opacity: 0;
+            }
+
+            90% {
+                transform: translate(4px, 2px);
+                opacity: 0.7;
+            }
+
+            92% {
+                transform: translate(-2px, 0);
+                opacity: 0.7;
+            }
+
+            94% {
+                transform: translate(0);
+                opacity: 0;
+            }
+        }
+
+        .glitch-wrap {
+            position: relative;
+            display: inline-block;
+        }
+
+        .glitch-wrap::before,
+        .glitch-wrap::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            font: inherit;
+            color: inherit;
+            background: var(--ink);
+        }
+
+        .glitch-wrap::before {
+            color: var(--gold);
+            clip-path: polygon(0 20%, 100% 20%, 100% 40%, 0 40%);
+            animation: glitchA 5s infinite;
+            left: 2px;
+        }
+
+        .glitch-wrap::after {
+            color: rgba(200, 169, 110, 0.4);
+            clip-path: polygon(0 65%, 100% 65%, 100% 80%, 0 80%);
+            animation: glitchB 5s infinite;
+            left: -2px;
+        }
+
+        @keyframes scanline {
+
+            0%,
+            100% {
+                opacity: 0;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        .glitch-ui {
+            position: relative;
+        }
+
+        .glitch-ui::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(transparent 50%, rgba(200, 169, 110, 0.015) 50%);
+            background-size: 100% 4px;
+            animation: scanline 8s linear infinite;
+            z-index: 10;
+        }
+
+        .section {
+            position: relative;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 24px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .hero-eyebrow {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 32px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            justify-content: center;
+        }
+
+        .hero-eyebrow::before,
+        .hero-eyebrow::after {
+            content: '';
+            width: 40px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--gold2));
+        }
+
+        .hero-eyebrow::after {
+            background: linear-gradient(90deg, var(--gold2), transparent);
+        }
+
+        .hero-star {
+            font-size: 48px;
+            line-height: 1;
+            color: var(--cream);
+            margin-bottom: 24px;
+            display: block;
+            animation: starPulse 4s ease infinite;
+        }
+
+        @keyframes starPulse {
+
+            0%,
+            100% {
+                transform: scale(1) rotate(0deg);
+            }
+
+            50% {
+                transform: scale(1.05) rotate(5deg);
+            }
+        }
+
+        .hero-h1 {
+            font-family: 'Cormorant', serif;
+            font-weight: 700;
+            font-size: clamp(64px, 12vw, 140px);
+            line-height: 0.9;
+            letter-spacing: -1px;
+            margin-bottom: 12px;
+        }
+
+        .hero-h1 em {
+            font-style: italic;
+            color: var(--gold);
+        }
+
+        .hero-sub {
+            font-size: 18px;
+            font-weight: 300;
+            font-style: italic;
+            color: rgba(242, 238, 228, 0.45);
+            margin-top: 20px;
+            letter-spacing: 0.02em;
+            line-height: 1.6;
+        }
+
+        .search-container {
+            margin-top: 56px;
+            width: 100%;
+            max-width: 500px;
+            position: relative;
+        }
+
+        .search-row {
+            display: flex;
+            align-items: stretch;
+            border: 1px solid rgba(200, 169, 110, 0.25);
+            background: rgba(14, 13, 10, 0.8);
+            transition: all 0.3s;
+        }
+
+        .search-row:focus-within {
+            border-color: rgba(200, 169, 110, 0.6);
+            box-shadow: 0 0 40px rgba(200, 169, 110, 0.07);
+        }
+
+        .search-at {
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            font-family: 'Space Mono', monospace;
+            color: var(--gold);
+            font-size: 16px;
+            border-right: 1px solid rgba(200, 169, 110, 0.15);
+        }
+
+        .search-row input {
+            flex: 1;
+            padding: 18px 16px;
+            background: transparent;
+            border: none;
+            color: var(--cream);
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 18px;
+            font-weight: 400;
+            letter-spacing: 0.05em;
+        }
+
+        .search-row input::placeholder {
+            color: rgba(242, 238, 228, 0.2);
+        }
+
+        .search-row input:focus {
+            outline: none;
+        }
+
+        .search-btn {
+            padding: 0 28px;
+            background: var(--gold2);
+            border: none;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--ink);
+            cursor: none;
+            transition: all 0.2s;
+        }
+
+        .search-btn:hover {
+            background: var(--gold);
+        }
+
+        .hint-text {
+            margin-top: 14px;
+            text-align: center;
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            color: rgba(242, 238, 228, 0.2);
+        }
+
+        .hint-text span {
+            color: rgba(200, 169, 110, 0.5);
+            cursor: none;
+        }
+
+        .hint-text span:hover {
+            color: var(--gold);
+        }
+
+        .ghost-card {
+            position: absolute;
+            border: 1px solid rgba(200, 169, 110, 0.08);
+            background: rgba(200, 169, 110, 0.02);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 14px;
+        }
+
+        .ghost-num {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            color: rgba(200, 169, 110, 0.25);
+        }
+
+        .ghost-q {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 28px;
+            color: rgba(200, 169, 110, 0.08);
+            text-align: center;
+        }
+
+        @keyframes f1 {
+
+            0%,
+            100% {
+                transform: rotate(-10deg) translateY(0);
+            }
+
+            50% {
+                transform: rotate(-8deg) translateY(-18px);
+            }
+        }
+
+        @keyframes f2 {
+
+            0%,
+            100% {
+                transform: rotate(8deg) translateY(0);
+            }
+
+            50% {
+                transform: rotate(6deg) translateY(-14px);
+            }
+        }
+
+        @keyframes f3 {
+
+            0%,
+            100% {
+                transform: rotate(4deg) translateY(0);
+            }
+
+            50% {
+                transform: rotate(6deg) translateY(-10px);
+            }
+        }
+
+        .ornament {
+            font-size: 40px;
+            color: var(--gold);
+            animation: spin 8s linear infinite;
+            display: block;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .load-title {
+            font-family: 'Cormorant', serif;
+            font-weight: 700;
+            font-style: italic;
+            font-size: 48px;
+            letter-spacing: 0.05em;
+            color: var(--cream);
+        }
+
+        .steps-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            width: 360px;
+            border: 1px solid rgba(200, 169, 110, 0.12);
+        }
+
+        .step-item {
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border-bottom: 1px solid rgba(200, 169, 110, 0.08);
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.05em;
+            color: rgba(242, 238, 228, 0.2);
+            transition: all 0.4s;
+        }
+
+        .step-item:last-child {
+            border-bottom: none;
+        }
+
+        .step-item.active {
+            color: var(--gold);
+            background: rgba(200, 169, 110, 0.04);
+        }
+
+        .step-item.done {
+            color: rgba(200, 169, 110, 0.35);
+        }
+
+        .step-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            flex-shrink: 0;
+        }
+
+        .step-item.active .step-dot {
+            box-shadow: 0 0 8px currentColor;
+            animation: blink 0.8s infinite;
+        }
+
+        .step-bar {
+            flex: 1;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+        }
+
+        .step-bar-fill {
+            height: 100%;
+            background: var(--gold);
+            width: 0;
+            transition: width 1.4s ease;
+        }
+
+        .step-item.active .step-bar-fill,
+        .step-item.done .step-bar-fill {
+            width: 100%;
+        }
+
+        .card-wrapper {
+            perspective: 1200px;
+        }
+
+        .trading-card {
+            width: 360px;
+            height: 540px;
+            position: relative;
+            background: var(--ink2);
+            border: 1px solid rgba(200, 169, 110, 0.15);
+            transition: transform 0.5s cubic-bezier(.23, 1, .32, 1), box-shadow 0.4s;
+            transform-style: preserve-3d;
+            overflow: hidden;
+        }
+
+        .card-corner {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border-color: rgba(200, 169, 110, 0.35);
+            border-style: solid;
+            z-index: 4;
+            pointer-events: none;
+        }
+
+        .card-corner.tl {
+            top: 12px;
+            left: 12px;
+            border-width: 1px 0 0 1px;
+        }
+
+        .card-corner.tr {
+            top: 12px;
+            right: 12px;
+            border-width: 1px 1px 0 0;
+        }
+
+        .card-corner.bl {
+            bottom: 12px;
+            left: 12px;
+            border-width: 0 0 1px 1px;
+        }
+
+        .card-corner.br {
+            bottom: 12px;
+            right: 12px;
+            border-width: 0 1px 1px 0;
+        }
+
+        .card-badge {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            z-index: 4;
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            color: var(--ink);
+            background: linear-gradient(135deg, var(--gold), #f0e6d2, var(--gold2));
+            background-size: 200% 200%;
+            animation: holoShift 4s ease infinite;
+            padding: 4px 10px;
+            box-shadow: 0 0 20px rgba(200, 169, 110, 0.15);
+            pointer-events: none;
+        }
+
+        @keyframes holoShift {
+
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        .card-glow {
+            position: absolute;
+            inset: -1px;
+            z-index: -1;
+            pointer-events: none;
+            background: conic-gradient(from var(--a, 0deg), var(--gold2), transparent, var(--gold), transparent, var(--gold2));
+            animation: rotateGlow 6s linear infinite;
+            opacity: 0.4;
+        }
+
+        @property --a {
+            syntax: '<angle>';
+            initial-value: 0deg;
+            inherits: false;
+        }
+
+        @keyframes rotateGlow {
+            to {
+                --a: 360deg;
+            }
+        }
+
+        .trading-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 6;
+            pointer-events: none;
+            background: var(--gold);
+            opacity: 0;
+            mix-blend-mode: overlay;
+            animation: cardGlitch 7s infinite;
+        }
+
+        @keyframes cardGlitch {
+
+            0%,
+            95%,
+            100% {
+                opacity: 0;
+            }
+
+            96% {
+                opacity: 0.04;
+                clip-path: polygon(0 30%, 100% 30%, 100% 34%, 0 34%);
+            }
+
+            97% {
+                opacity: 0.06;
+                clip-path: polygon(0 60%, 100% 60%, 100% 62%, 0 62%);
+            }
+
+            98% {
+                opacity: 0;
+            }
+
+            99% {
+                opacity: 0.03;
+                clip-path: polygon(0 10%, 100% 10%, 100% 15%, 0 15%);
+            }
+        }
+
+        .card-art {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        #cardArtBg,
+        #finalArtBg {
+            width: 100%;
+            height: 100%;
+            transition: background 0.5s;
+        }
+
+        .card-art-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, rgba(26, 25, 22, 0.3) 0%, rgba(26, 25, 22, 0.97) 100%);
+        }
+
+        .card-art::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            background: repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(200, 169, 110, 0.025) 40px, rgba(200, 169, 110, 0.025) 41px);
+        }
+
+        .card-inner {
+            position: absolute;
+            inset: 0;
+            z-index: 3;
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-inner::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: repeating-linear-gradient(90deg, transparent, transparent 29px, rgba(200, 169, 110, 0.02) 29px, rgba(200, 169, 110, 0.02) 30px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-brand-text {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 300;
+            font-size: 11px;
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            color: rgba(200, 169, 110, 0.6);
+        }
+
+        .card-serial {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            color: rgba(242, 238, 228, 0.2);
+            letter-spacing: 0.05em;
+        }
+
+        .card-pfp-wrap {
+            position: relative;
+            width: 100%;
+            height: 220px;
+            overflow: hidden;
+            flex-shrink: 0;
+            border: 1px solid rgba(200, 169, 110, 0.12);
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-pfp-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: sepia(15%) contrast(1.05);
+            display: block;
+        }
+
+        .card-pfp-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, transparent 45%, var(--ink2) 100%);
+        }
+
+        .card-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding-top: 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-uname {
+            font-family: 'Cormorant', serif;
+            font-weight: 700;
+            font-size: 34px;
+            line-height: 1;
+            letter-spacing: 0.02em;
+            color: var(--cream);
+        }
+
+        .card-realname {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 13px;
+            color: rgba(242, 238, 228, 0.45);
+            margin-top: -2px;
+            letter-spacing: 0.04em;
+        }
+
+        .card-tagline {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 300;
+            font-style: italic;
+            font-size: 13px;
+            color: rgba(242, 238, 228, 0.4);
+            line-height: 1.5;
+            border-left: 1px solid rgba(200, 169, 110, 0.3);
+            padding-left: 10px;
+            margin-top: 6px;
+        }
+
+        .card-footer {
+            margin-top: auto;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-status {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            color: rgba(200, 169, 110, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--gold);
+            animation: blink 1.5s infinite;
+        }
+
+        .card-wm {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            color: rgba(255, 255, 255, 0.1);
+            letter-spacing: 0.15em;
+        }
+
+        .card-shine {
+            position: absolute;
+            inset: 0;
+            z-index: 5;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            background: linear-gradient(115deg, transparent 35%, rgba(200, 169, 110, 0.05) 50%, transparent 65%);
+        }
+
+        .trading-card:hover .card-shine {
+            opacity: 1;
+        }
+
+        .trading-card.verified {
+            box-shadow: 0 0 60px rgba(200, 169, 110, 0.12), 0 40px 80px rgba(0, 0, 0, 0.7);
+        }
+
+        .preview-wrap,
+        .claimed-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 64px;
+            align-items: center;
+            justify-content: center;
+            max-width: 1080px;
+            width: 100%;
+        }
+
+        .preview-right,
+        .claimed-right {
+            flex: 1;
+            min-width: 300px;
+            max-width: 420px;
+        }
+
+        .section-title {
+            font-family: 'Cormorant', serif;
+            font-weight: 700;
+            font-style: italic;
+            font-size: 52px;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .section-sub {
+            font-size: 17px;
+            font-weight: 300;
+            color: rgba(242, 238, 228, 0.4);
+            line-height: 1.6;
+            margin-bottom: 36px;
+        }
+
+        .connect-box {
+            border: 1px solid rgba(200, 169, 110, 0.18);
+            padding: 28px;
+            background: rgba(200, 169, 110, 0.02);
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .connect-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--gold2), transparent);
+        }
+
+        .connect-box-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 13px;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 4px;
+        }
+
+        .connect-box-sub {
+            font-size: 15px;
+            font-weight: 300;
+            color: rgba(242, 238, 228, 0.35);
+            margin-bottom: 20px;
+        }
+
+        .signed-in-banner {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 10px 14px;
+            background: rgba(200, 169, 110, 0.05);
+            border: 1px solid rgba(200, 169, 110, 0.15);
+        }
+
+        .signed-in-banner img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid rgba(200, 169, 110, 0.3);
+            filter: sepia(15%);
+        }
+
+        .signed-in-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .signed-in-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            color: var(--gold);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .signed-in-handle {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 16px;
+            color: var(--cream);
+            letter-spacing: 0.02em;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px 28px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            border: none;
+            cursor: none;
+            transition: all 0.25s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.05);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover::after {
+            opacity: 1;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-gold {
+            background: var(--gold2);
+            color: var(--ink);
+            width: 100%;
+        }
+
+        .btn-gold:hover {
+            background: var(--gold);
+        }
+
+        .btn-x {
+            background: var(--cream);
+            color: var(--ink);
+            width: 100%;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid rgba(200, 169, 110, 0.25);
+            color: var(--cream);
+        }
+
+        .btn-outline:hover {
+            border-color: rgba(200, 169, 110, 0.5);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.45);
+            font-size: 10px;
+        }
+
+        .btn-ghost:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            color: var(--cream);
+        }
+
+        .btn-claim {
+            background: rgba(200, 169, 110, 0.1);
+            border: 1px solid rgba(200, 169, 110, 0.25);
+            color: var(--cream);
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn-claim:hover {
+            background: rgba(200, 169, 110, 0.15);
+            border-color: rgba(200, 169, 110, 0.4);
+        }
+
+        .perks {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 20px;
+        }
+
+        .perk {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 14px;
+            font-weight: 300;
+            color: rgba(242, 238, 228, 0.5);
+        }
+
+        .perk-icon {
+            color: var(--gold);
+            font-size: 10px;
+            flex-shrink: 0;
+        }
+
+        .claimed-right {
+            flex: 1;
+            min-width: 300px;
+            max-width: 460px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .success-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 4px;
+        }
+
+        .success-star {
+            font-size: 36px;
+            color: var(--gold);
+        }
+
+        .panel {
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            padding: 24px;
+            background: rgba(255, 255, 255, 0.015);
+            position: relative;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(200, 169, 110, 0.3), transparent);
+        }
+
+        .panel-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: rgba(200, 169, 110, 0.4);
+            margin-bottom: 10px;
+        }
+
+        .theme-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .theme-btn {
+            padding: 12px 8px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            cursor: none;
+            transition: all 0.2s;
+        }
+
+        .theme-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .theme-btn.active {
+            border-color: rgba(200, 169, 110, 0.4);
+            background: rgba(200, 169, 110, 0.06);
+        }
+
+        .theme-swatch {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            margin: 0 auto 6px;
+        }
+
+        .theme-name {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            color: rgba(242, 238, 228, 0.4);
+        }
+
+        .bg-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .bg-opt {
+            aspect-ratio: 1;
+            cursor: none;
+            border: 1px solid transparent;
+            overflow: hidden;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .bg-opt:hover,
+        .bg-opt.active {
+            border-color: rgba(200, 169, 110, 0.5);
+        }
+
+        .bg-opt div {
+            width: 100%;
+            height: 100%;
+        }
+
+        .bg-opt .bg-img-thumb {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.7;
+        }
+
+        .action-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        #connectLoading {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spin-ring {
+            width: 24px;
+            height: 24px;
+            border: 1px solid rgba(200, 169, 110, 0.2);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        .ineligible-box {
+            max-width: 480px;
+            width: 100%;
+            text-align: center;
+            padding: 0 0 56px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ineligible-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(242, 238, 228, 0.2), transparent);
+        }
+
+        .ineligible-img-wrap {
+            width: 100%;
+            height: 220px;
+            overflow: hidden;
+            margin-bottom: 32px;
+            position: relative;
+        }
+
+        .ineligible-img-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.8;
+            filter: sepia(20%) contrast(0.9);
+        }
+
+        .ineligible-img-wrap::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, transparent 40%, var(--ink) 100%);
+        }
+
+        .ineligible-title {
+            font-family: 'Cormorant', serif;
+            font-weight: 700;
+            font-size: 48px;
+            letter-spacing: 0.05em;
+            line-height: 1;
+            margin-bottom: 16px;
+            padding: 0 40px;
+        }
+
+        .ineligible-sub {
+            font-size: 17px;
+            font-weight: 300;
+            color: rgba(242, 238, 228, 0.35);
+            margin-bottom: 32px;
+            line-height: 1.6;
+            padding: 0 40px;
+        }
+
+        .coll-inner {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding-top: 100px;
+            padding-bottom: 80px;
+        }
+
+        .coll-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .coll-title-el {
+            font-family: 'Cormorant', serif;
+            font-weight: 700;
+            font-style: italic;
+            font-size: 64px;
+            line-height: 1;
+        }
+
+        .coll-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 16px;
+        }
+
+        .coll-card {
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            cursor: none;
+            transition: all 0.25s;
+            position: relative;
+            background: rgba(255, 255, 255, 0.01);
+            text-decoration: none;
+        }
+
+        .coll-card:hover {
+            border-color: rgba(200, 169, 110, 0.3);
+            background: rgba(200, 169, 110, 0.03);
+            transform: translateY(-3px);
+        }
+
+        .coll-card.claimed {
+            cursor: pointer;
+        }
+
+        .coll-pfp {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 1px solid rgba(200, 169, 110, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .coll-pfp img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: sepia(15%);
+        }
+
+        .coll-anon {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 24px;
+            color: rgba(200, 169, 110, 0.15);
+        }
+
+        .coll-uname {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            color: rgba(242, 238, 228, 0.6);
+            text-align: center;
+        }
+
+        .coll-num {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            color: rgba(242, 238, 228, 0.2);
+            text-align: center;
+        }
+
+        .claimed-badge {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            padding: 3px 8px;
+            border: 1px solid rgba(200, 169, 110, 0.3);
+            color: var(--gold);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .unclaimed-badge {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            padding: 3px 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.2);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .coll-tagline {
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            font-size: 12px;
+            color: rgba(242, 238, 228, 0.3);
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            z-index: 1000;
+            padding: 14px 22px;
+            min-width: 260px;
+            background: rgba(26, 25, 22, 0.97);
+            border-left: 2px solid var(--gold);
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: var(--cream);
+            transform: translateX(400px);
+            transition: transform 0.4s cubic-bezier(.23, 1, .32, 1);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            border-left-color: rgba(200, 80, 80, 0.8);
+        }
+
+        .toast.info {
+            border-left-color: rgba(200, 169, 110, 0.5);
+        }
+
+        #adminBtn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 500;
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            letter-spacing: 0.1em;
+            padding: 8px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(14, 13, 10, 0.9);
+            color: rgba(255, 255, 255, 0.2);
+            cursor: none;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+
+        #adminBtn:hover {
+            color: var(--gold);
+            border-color: rgba(200, 169, 110, 0.3);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 600;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+        }
+
+        .modal-box {
+            background: var(--ink2);
+            border: 1px solid rgba(200, 169, 110, 0.2);
+            padding: 36px;
+            width: 100%;
+            max-width: 680px;
+            max-height: 85vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-title {
+            font-family: 'Cormorant', serif;
+            font-weight: 700;
+            font-size: 32px;
+            margin-bottom: 6px;
+        }
+
+        .modal-sub {
+            font-size: 14px;
+            color: rgba(242, 238, 228, 0.35);
+            margin-bottom: 28px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            border: none;
+            color: rgba(242, 238, 228, 0.4);
+            font-size: 20px;
+            cursor: none;
+        }
+
+        .modal-close:hover {
+            color: var(--cream);
+        }
+
+        .modal-section {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: rgba(200, 169, 110, 0.4);
+            margin: 20px 0 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .wl-entry {
+            display: flex;
+            gap: 0;
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            margin-bottom: 6px;
+            align-items: stretch;
+        }
+
+        .wl-entry input {
+            flex: 1;
+            padding: 9px 12px;
+            background: transparent;
+            border: none;
+            border-right: 1px solid rgba(255, 255, 255, 0.07);
+            color: var(--cream);
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+        }
+
+        .wl-entry input:focus {
+            outline: none;
+        }
+
+        .wl-entry input::placeholder {
+            color: rgba(255, 255, 255, 0.12);
+        }
+
+        .wl-entry .del-btn {
+            padding: 0 14px;
+            background: none;
+            border: none;
+            color: rgba(255, 80, 80, 0.4);
+            cursor: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .wl-entry .del-btn:hover {
+            color: rgba(255, 80, 80, 0.8);
+        }
+
+        .add-row {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .add-row input {
+            flex: 1;
+            min-width: 100px;
+            padding: 9px 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--cream);
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+        }
+
+        .add-row input:focus {
+            outline: none;
+            border-color: rgba(200, 169, 110, 0.4);
+        }
+
+        .bg-admin-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .bg-admin-item {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 10px;
+            position: relative;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .bg-admin-item input {
+            width: 100%;
+            padding: 7px 10px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--cream);
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            margin-top: 6px;
+        }
+
+        .bg-admin-item input:focus {
+            outline: none;
+            border-color: rgba(200, 169, 110, 0.4);
+        }
+
+        .bg-admin-preview {
+            width: 100%;
+            height: 70px;
+            object-fit: cover;
+            opacity: 0.6;
+            display: block;
+        }
+
+        .bg-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            color: rgba(255, 255, 255, 0.3);
+            margin-top: 4px;
+        }
+
+        .config-row {
+            margin-top: 10px;
+        }
+
+        .config-row input {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--cream);
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+        }
+
+        .config-row input:focus {
+            outline: none;
+            border-color: rgba(200, 169, 110, 0.4);
+        }
+
+        .scroll-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 1px;
+            z-index: 200;
+            background: linear-gradient(90deg, var(--gold2), var(--gold));
+            width: 0;
+            transition: width 0.1s;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(24px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .au {
+            animation: fadeUp 0.7s cubic-bezier(.23, 1, .32, 1) both;
+        }
+
+        .au2 {
+            animation: fadeUp 0.7s 0.08s cubic-bezier(.23, 1, .32, 1) both;
+        }
+
+        .au3 {
+            animation: fadeUp 0.7s 0.16s cubic-bezier(.23, 1, .32, 1) both;
+        }
+
+        .au4 {
+            animation: fadeUp 0.7s 0.24s cubic-bezier(.23, 1, .32, 1) both;
+        }
+
+        @media(max-width:768px) {
+            .trading-card {
+                width: 300px;
+                height: 460px;
+            }
+
+            .card-pfp-wrap {
+                height: 185px;
+            }
+
+            nav {
+                padding: 16px 20px;
+            }
+
+            .nav-tabs {
+                display: none;
+            }
+
+            .preview-wrap,
+            .claimed-wrap {
+                gap: 32px;
+            }
+        }
+    </style>
+    <base target="_blank">
+</head>
+
+<body>
+    <div id="cur"></div>
+    <div id="cur-ring"></div>
+    <div class="scroll-bar" id="scrollBar"></div>
+    <canvas id="star-canvas"></canvas>
+    <div class="grain"></div>
+
+    <nav>
+        <div class="nav-logo">Bulk</div>
+        <div class="nav-tabs">
+            <button class="nav-tab active" id="tabCards" onclick="goTab('cards')">Cards</button>
+            <button class="nav-tab" id="tabClaimed" onclick="goTab('claimed-list')">Claimed</button>
+        </div>
+        <div id="userPill" class="hidden nav-badge" style="border-color:rgba(200,169,110,0.3);color:var(--gold);">
+            <span class="nav-dot"></span>
+            <span id="navUname">—</span>
+        </div>
+    </nav>
+
+    <main>
+        <section id="heroSection" class="section" style="flex-direction:column;text-align:center;">
+            <div style="display:flex;flex-direction:column;align-items:center;" class="au">
+                <div class="hero-eyebrow">Exclusive Drop — Solana's Premier Perp DEX</div>
+                <span class="hero-star">✦</span>
+                <h1 class="hero-h1">
+                    <span class="glitch-wrap" data-text="One Exchange">One Exchange</span><br>
+                    <em>Infinite Cards</em>
+                </h1>
+                <p class="hero-sub">Enter your X handle to see if you're on the whitelist.<br>Claim your Bulk Elite
+                    Card.</p>
+                <div class="search-container au2 glitch-ui">
+                    <div class="search-row">
+                        <div class="search-at">@</div>
+                        <input type="text" id="usernameInput" placeholder="yourhandle" autocomplete="off"
+                            spellcheck="false">
+                        <button class="search-btn" onclick="checkEligibility()">Verify</button>
+                    </div>
+                    <p class="hint-text" id="hintLine">Enter your X handle above</p>
+                </div>
+            </div>
+            <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:-1;">
+                <div class="ghost-card"
+                    style="top:18%;left:4%;width:130px;height:185px;animation:f1 9s ease infinite;transform:rotate(-10deg);">
+                    <div class="ghost-num">#047</div>
+                    <div class="ghost-q">?</div>
+                    <div class="ghost-num">???</div>
+                </div>
+                <div class="ghost-card"
+                    style="top:28%;right:5%;width:110px;height:158px;animation:f2 11s ease infinite;transform:rotate(8deg);">
+                    <div class="ghost-num">#012</div>
+                    <div class="ghost-q">?</div>
+                    <div class="ghost-num">???</div>
+                </div>
+                <div class="ghost-card"
+                    style="bottom:12%;left:10%;width:95px;height:135px;animation:f3 13s ease infinite;transform:rotate(4deg);">
+                    <div class="ghost-num">#133</div>
+                    <div class="ghost-q">?</div>
+                    <div class="ghost-num">???</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="loadingSection" class="section hidden" style="flex-direction:column;gap:32px;">
+            <span class="ornament">✦</span>
+            <div class="load-title">Verifying</div>
+            <div class="steps-list">
+                <div class="step-item" id="step1">
+                    <div class="step-dot"></div><span>Connecting to X API</span>
+                    <div class="step-bar">
+                        <div class="step-bar-fill"></div>
+                    </div>
+                </div>
+                <div class="step-item" id="step2">
+                    <div class="step-dot"></div><span>Checking whitelist</span>
+                    <div class="step-bar">
+                        <div class="step-bar-fill"></div>
+                    </div>
+                </div>
+                <div class="step-item" id="step3">
+                    <div class="step-dot"></div><span>Fetching profile</span>
+                    <div class="step-bar">
+                        <div class="step-bar-fill"></div>
+                    </div>
+                </div>
+                <div class="step-item" id="step4">
+                    <div class="step-dot"></div><span>Preparing card</span>
+                    <div class="step-bar">
+                        <div class="step-bar-fill"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="previewSection" class="section hidden">
+            <div class="preview-wrap">
+                <div class="card-wrapper au">
+                    <div class="trading-card glitch-ui" id="previewCard">
+                        <div class="card-glow"></div>
+                        <div class="card-shine"></div>
+                        <div class="card-corner tl"></div>
+                        <div class="card-corner tr"></div>
+                        <div class="card-corner bl"></div>
+                        <div class="card-corner br"></div>
+                        <div class="card-badge">Elite</div>
+                        <div class="card-art" id="cardArt">
+                            <div id="cardArtBg" style="width:100%;height:100%;"></div>
+                            <div class="card-art-overlay"></div>
+                        </div>
+                        <div class="card-inner">
+                            <div class="card-header">
+                                <span class="card-brand-text">Bulk Elite</span>
+                                <span class="card-serial">#<span id="cardNum">001</span></span>
+                            </div>
+                            <div class="card-pfp-wrap">
+                                <img id="cardPfp" src="" alt="" crossorigin="anonymous">
+                                <div class="card-pfp-overlay"></div>
+                            </div>
+                            <div class="card-info">
+                                <div class="card-uname" id="cardUsername">@handle</div>
+                                <div class="card-realname" id="cardRealName"></div>
+                                <div class="card-tagline" id="cardTagline">Elite Bulktrade Member</div>
+                            </div>
+                            <div class="card-footer">
+                                <div class="card-status">
+                                    <div class="status-dot"></div>PENDING CLAIM
+                                </div>
+                                <div class="card-wm">BULK.TRADE</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="preview-right au2">
+                    <div class="section-title">Card<br><em>Reserved</em></div>
+                    <p class="section-sub">Your spot is secured. Connect your X account to verify ownership and
+                        officially mint your card.</p>
+
+                    <div class="connect-box" id="authBox">
+                        <div class="connect-box-title" id="authTitle">Verify Identity</div>
+                        <div class="connect-box-sub" id="authSub">Authenticate with X to prove ownership and unlock
+                            claiming.</div>
+
+                        <div id="authNotConnected">
+                            <button class="btn btn-x" id="connectBtn" onclick="connectX()">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                                </svg>
+                                Connect X Account
+                            </button>
+                        </div>
+
+                        <div id="authLoading" class="hidden" style="text-align:center;padding:10px;">
+                            <div class="spin-ring" style="margin-bottom:10px;"></div>
+                            <p style="font-family:'Space Mono',monospace;font-size:10px;color:var(--gold);">Redirecting
+                                to X...</p>
+                        </div>
+
+                        <div id="authConnected" class="hidden">
+                            <div class="signed-in-banner">
+                                <img id="authPfp" src="" alt="">
+                                <div class="signed-in-text">
+                                    <div class="signed-in-label">Signed in as</div>
+                                    <div class="signed-in-handle" id="authHandleDisplay">@handle</div>
+                                </div>
+                            </div>
+                            <button class="btn btn-gold" onclick="claimCard()">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24" style="margin-right:6px;">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                                Claim Your Card
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="perks">
+                        <div class="perk"><span class="perk-icon">✦</span> Exclusive Discord Elite channel</div>
+                        <div class="perk"><span class="perk-icon">✦</span> Zero trading fees for 30 days</div>
+                        <div class="perk"><span class="perk-icon">✦</span> Airdrop eligibility + bonus multiplier</div>
+                        <div class="perk"><span class="perk-icon">✦</span> Early access to all new features</div>
+                    </div>
+                    <button onclick="resetSearch()"
+                        style="font-family:'Space Mono',monospace;font-size:10px;color:rgba(255,255,255,0.2);cursor:none;background:none;border:none;margin-top:16px;transition:color 0.2s;letter-spacing:0.05em;"
+                        onmouseover="this.style.color='var(--cream)'"
+                        onmouseout="this.style.color='rgba(255,255,255,0.2)'">← Different username</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="claimedSection" class="section hidden">
+            <div class="claimed-wrap">
+                <div class="card-wrapper au">
+                    <div class="trading-card verified glitch-ui" id="finalCard">
+                        <div class="card-glow"></div>
+                        <div class="card-shine"></div>
+                        <div class="card-corner tl"></div>
+                        <div class="card-corner tr"></div>
+                        <div class="card-corner bl"></div>
+                        <div class="card-corner br"></div>
+                        <div class="card-badge">Elite</div>
+                        <div class="card-art" id="finalArt">
+                            <div id="finalArtBg" style="width:100%;height:100%;"></div>
+                            <div class="card-art-overlay"></div>
+                        </div>
+                        <div class="card-inner">
+                            <div class="card-header">
+                                <span class="card-brand-text">Bulk Elite</span>
+                                <span class="card-serial">#<span id="finalNum">001</span></span>
+                            </div>
+                            <div class="card-pfp-wrap">
+                                <img id="finalPfp" src="" alt="" crossorigin="anonymous">
+                                <div class="card-pfp-overlay"></div>
+                            </div>
+                            <div class="card-info">
+                                <div class="card-uname" id="finalUsername">@handle</div>
+                                <div class="card-realname" id="finalRealName"></div>
+                                <div class="card-tagline" id="finalTagline">Elite Bulktrade Member</div>
+                            </div>
+                            <div class="card-footer">
+                                <div class="card-status" style="color:var(--gold);">
+                                    <div class="status-dot"></div>VERIFIED ✓
+                                </div>
+                                <div class="card-wm" id="mintDateEl">BULK.TRADE</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="claimed-right">
+                    <div class="success-row au">
+                        <span class="success-star">✦</span>
+                        <div>
+                            <div
+                                style="font-family:'Cormorant',serif;font-weight:700;font-style:italic;font-size:48px;line-height:1;">
+                                Card Minted!</div>
+                            <div style="font-size:15px;font-weight:300;color:rgba(242,238,228,0.35);">Welcome to Bulk
+                                Elite</div>
+                        </div>
+                    </div>
+
+                    <div class="panel au2">
+                        <div class="panel-label">Card Theme</div>
+                        <div class="theme-row">
+                            <button class="theme-btn active" onclick="setTheme('classic',this)">
+                                <div class="theme-swatch" style="background:linear-gradient(135deg,#C8A96E,#A8863E);">
+                                </div>
+                                <div class="theme-name">Classic</div>
+                            </button>
+                            <button class="theme-btn" onclick="setTheme('void',this)">
+                                <div class="theme-swatch" style="background:linear-gradient(135deg,#D0CCBF,#888880);">
+                                </div>
+                                <div class="theme-name">Void</div>
+                            </button>
+                            <button class="theme-btn" onclick="setTheme('ember',this)">
+                                <div class="theme-swatch" style="background:linear-gradient(135deg,#FF8B35,#CC5500);">
+                                </div>
+                                <div class="theme-name">Ember</div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="panel au2">
+                        <div class="panel-label">Card Background</div>
+                        <div class="bg-grid" id="bgGrid"></div>
+                    </div>
+
+                    <div class="action-row au3">
+                        <button class="btn btn-gold" onclick="downloadCard()">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Download HD
+                        </button>
+                        <button class="btn btn-outline" onclick="shareCard()">
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                            </svg>
+                            Share on X
+                        </button>
+                    </div>
+
+                    <button class="btn btn-ghost au4" onclick="goTab('claimed-list')" style="width:100%;">View Who's
+                        Claimed →</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="ineligibleSection" class="section hidden">
+            <div class="ineligible-box au">
+                <div class="ineligible-img-wrap">
+                    <img id="ineligibleImg" src="" alt="" style="display:none;">
+                </div>
+                <div class="ineligible-title">Not Found</div>
+                <p class="ineligible-sub">Sorry, you couldn't make it in this wave.<br>Stay tuned for future drops.</p>
+                <button class="btn btn-gold" style="width:80%;margin:0 auto;" onclick="resetSearch()">Try Again</button>
+            </div>
+        </section>
+
+        <section id="collectionSection" class="section hidden"
+            style="align-items:flex-start;min-height:100vh;padding:0 24px 80px;">
+            <div class="coll-inner">
+                <div class="coll-head au">
+                    <div>
+                        <div class="coll-title-el">Claimed</div>
+                        <div style="font-family:'Space Mono',monospace;font-size:10px;color:rgba(242,238,228,0.3);margin-top:4px;"
+                            id="claimedCount">— cards minted</div>
+                    </div>
+                    <button class="btn btn-ghost" onclick="goTab('cards')" style="padding:10px 18px;font-size:10px;">←
+                        Back</button>
+                </div>
+                <div class="coll-grid" id="collGrid"></div>
+            </div>
+        </section>
+    </main>
+
+    <div class="toast" id="toast"><span id="toastMsg"></span></div>
+    <button id="adminBtn" onclick="openAdmin()">⚙ Admin</button>
+
+    <div class="modal-overlay hidden" id="adminModal">
+        <div class="modal-box">
+            <div class="modal-title">Admin Panel</div>
+            <div class="modal-sub">Manage whitelist, taglines, card backgrounds, and ineligible page</div>
+            <button class="modal-close" onclick="closeAdmin()">✕</button>
+
+            <div class="modal-section">Whitelist Members</div>
+            <div id="wlList"></div>
+            <div class="add-row">
+                <input type="text" id="newHandle" placeholder="x_handle">
+                <input type="text" id="newCard" placeholder="Card #">
+                <input type="text" id="newTagline" placeholder="Custom tagline (admin only)" style="flex:3;">
+                <button class="btn btn-gold" onclick="addEntry()"
+                    style="padding:10px 16px;font-size:10px;width:auto;">Add</button>
+            </div>
+            <div style="margin-top:8px;font-family:'Space Mono',monospace;font-size:9px;color:rgba(255,255,255,0.15);">
+                Taglines can only be set here in the admin panel.</div>
+
+            <div class="modal-section">Custom Background Images</div>
+            <div
+                style="font-family:'Space Mono',monospace;font-size:9px;color:rgba(255,255,255,0.25);margin-bottom:12px;">
+                Slots 1–8 are CSS gradients. Slots 9–12 are your custom images.</div>
+            <div class="bg-admin-grid" id="bgAdminGrid"></div>
+            <button class="btn btn-gold" onclick="saveBgConfig()" style="margin-top:12px;width:100%;padding:12px;">Save
+                Background Config</button>
+
+            <div class="modal-section">Ineligible Page Image</div>
+            <div
+                style="font-family:'Space Mono',monospace;font-size:9px;color:rgba(255,255,255,0.25);margin-bottom:8px;">
+                Image URL/path for uneligible members (e.g. /images/sorry.jpg)</div>
+            <div class="config-row">
+                <input type="text" id="ineligibleImgInput" placeholder="https://... or /images/sorry.jpg"
+                    onchange="updateIneligibleImg(this.value)">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CURSOR + STARS + SCROLL + TILT
+        const cur = document.getElementById('cur'), ring = document.getElementById('cur-ring');
+        let mx = 0, my = 0, rx = 0, ry = 0;
+        document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; cur.style.left = mx + 'px'; cur.style.top = my + 'px'; });
+        (function animC() { rx += (mx - rx) * 0.1; ry += (my - ry) * 0.1; ring.style.left = rx + 'px'; ring.style.top = ry + 'px'; requestAnimationFrame(animC); })();
+        document.addEventListener('mouseover', e => { if (e.target.matches('button,a,input,textarea,.bg-opt,.coll-card,.nav-tab,.theme-btn')) { cur.style.transform = 'translate(-50%,-50%) scale(2.5)'; ring.style.transform = 'translate(-50%,-50%) scale(1.5)'; } }, { passive: true });
+        document.addEventListener('mouseout', e => { if (e.target.matches('button,a,input,textarea,.bg-opt,.coll-card,.nav-tab,.theme-btn')) { cur.style.transform = 'translate(-50%,-50%) scale(1)'; ring.style.transform = 'translate(-50%,-50%) scale(1)'; } }, { passive: true });
+
+        window.addEventListener('scroll', () => { document.getElementById('scrollBar').style.width = (window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100) + '%'; }, { passive: true });
+
+        const sc = document.getElementById('star-canvas');
+        const sx = sc.getContext('2d');
+        let sw, sh, stars = [];
+        function resizeStar() { sc.width = sw = window.innerWidth; sc.height = sh = window.innerHeight; }
+        resizeStar(); window.addEventListener('resize', resizeStar, { passive: true });
+        for (let i = 0; i < 120; i++)stars.push({ x: Math.random(), y: Math.random(), r: Math.random() * 1.2 + 0.2, a: Math.random() * 0.5 + 0.05, va: (Math.random() - 0.5) * 0.003 });
+        (function drawS() { sx.clearRect(0, 0, sw, sh); stars.forEach(s => { s.a = Math.max(0.05, Math.min(0.6, s.a + s.va)); if (s.a <= 0.05 || s.a >= 0.6) s.va *= -1; sx.beginPath(); sx.arc(s.x * sw, s.y * sh, s.r, 0, Math.PI * 2); sx.fillStyle = `rgba(242,238,228,${s.a})`; sx.fill(); }); requestAnimationFrame(drawS); })();
+
+        document.addEventListener('mousemove', e => { document.querySelectorAll('.trading-card').forEach(card => { if (card.closest('.hidden')) return; const r = card.getBoundingClientRect(); const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2); if (Math.sqrt(dx * dx + dy * dy) < 600) card.style.transform = `perspective(1000px) rotateX(${-dy / 22}deg) rotateY(${dx / 22}deg) scale(1.02)`; else card.style.transform = ''; }); }, { passive: true });
+
+        // DATA
+        const DEFAULT_WL = {
+            '0xpaf': { username: '0xPAF', cardNumber: '001', tagline: 'DeFi architect. Liquidity hunter.', claimed: false },
+            'pafrehman': { username: 'PafRehman', cardNumber: '002', tagline: 'Market maker. Building Bulktrade.', claimed: false },
+        };
+
+        let whitelist = loadWL();
+        function loadWL() {
+            try {
+                const d = localStorage.getItem('bulk_wl_v2');
+                if (d) {
+                    const saved = JSON.parse(d);
+                    const merged = { ...saved };
+                    Object.keys(DEFAULT_WL).forEach(k => { if (!merged[k]) merged[k] = { ...DEFAULT_WL[k] }; });
+                    return merged;
+                }
+                return JSON.parse(JSON.stringify(DEFAULT_WL));
+            } catch (e) { return JSON.parse(JSON.stringify(DEFAULT_WL)); }
+        }
+        function saveWL() { try { localStorage.setItem('bulk_wl_v2', JSON.stringify(whitelist)); } catch (e) { } }
+
+        let config = loadConfig();
+        function loadConfig() {
+            try { const d = localStorage.getItem('bulk_config'); if (d) return JSON.parse(d); } catch (e) { }
+            return { ineligibleImg: '' };
+        }
+        function saveConfig() { try { localStorage.setItem('bulk_config', JSON.stringify(config)); } catch (e) { } }
+
+        const THEMES = {
+            classic: { gold: '#C8A96E', gold2: '#A8863E', border2: 'rgba(200,169,110,0.2)' },
+            void: { gold: '#D0CCBF', gold2: '#888880', border2: 'rgba(200,200,180,0.15)' },
+            ember: { gold: '#FF8B35', gold2: '#CC5500', border2: 'rgba(255,100,30,0.2)' }
+        };
+        function setTheme(name, btn) {
+            const t = THEMES[name];
+            document.documentElement.style.setProperty('--gold', t.gold);
+            document.documentElement.style.setProperty('--gold2', t.gold2);
+            document.documentElement.style.setProperty('--border2', t.border2);
+            document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            toast('Theme: ' + name.charAt(0).toUpperCase() + name.slice(1), 'info');
+        }
+
+        const CSS_BACKGROUNDS = [
+            { id: 'default', label: 'Classic', css: 'radial-gradient(ellipse at 30% 40%,rgba(200,169,110,0.18),transparent 55%),radial-gradient(ellipse at 75% 80%,rgba(200,169,110,0.08),transparent 45%)', thumb: 'radial-gradient(ellipse at 30% 40%,rgba(200,169,110,0.5),rgba(26,25,22,0.9),#1a1916)' },
+            { id: 'night', label: 'Night', css: 'radial-gradient(circle at 50% 20%,rgba(100,120,200,0.35),transparent 50%),radial-gradient(circle at 80% 80%,rgba(60,40,120,0.2),transparent)', thumb: 'radial-gradient(circle at 50% 30%,rgba(100,120,200,0.6),#06060f)' },
+            { id: 'ember', label: 'Ember', css: 'radial-gradient(circle at 50% 80%,rgba(220,80,30,0.45),rgba(100,0,0,0.35),transparent)', thumb: 'radial-gradient(circle at 50% 70%,rgba(220,80,30,0.7),#0a0000)' },
+            { id: 'forest', label: 'Forest', css: 'radial-gradient(circle at 50% 50%,rgba(30,80,40,0.5),rgba(10,30,15,0.8),transparent)', thumb: 'radial-gradient(circle at 50% 50%,rgba(30,80,40,0.7),#000a03)' },
+            { id: 'onyx', label: 'Onyx', css: 'repeating-linear-gradient(45deg,rgba(255,255,255,0.03) 0px,rgba(255,255,255,0.03) 1px,transparent 1px,transparent 14px)', thumb: 'repeating-linear-gradient(45deg,rgba(255,255,255,0.1) 0px,rgba(255,255,255,0.1) 1px,#111 1px,#111 10px)' },
+            { id: 'aurora', label: 'Aurora', css: 'radial-gradient(circle at 20% 50%,rgba(50,200,180,0.25),transparent 60%),radial-gradient(circle at 80% 50%,rgba(200,50,150,0.2),transparent 60%)', thumb: 'radial-gradient(circle at 30% 50%,rgba(50,200,180,0.5),rgba(200,50,150,0.3),#0a0a12)' },
+            { id: 'obsidian', label: 'Obsidian', css: 'radial-gradient(ellipse at 50% 100%,rgba(180,30,30,0.25),rgba(40,0,0,0.15),transparent 70%)', thumb: 'radial-gradient(ellipse at 50% 100%,rgba(180,30,30,0.5),#0a0000)' },
+            { id: 'ivory', label: 'Ivory', css: 'radial-gradient(ellipse at 50% 0%,rgba(242,238,228,0.12),transparent 60%)', thumb: 'radial-gradient(ellipse at 50% 0%,rgba(242,238,228,0.25),#1a1916)' },
+        ];
+
+        let customBgs = loadCustomBgs();
+        function loadCustomBgs() {
+            try { const d = localStorage.getItem('bulk_custom_bgs'); if (d) return JSON.parse(d); } catch (e) { }
+            return [
+                { id: 'custom1', label: 'Custom 1', path: '' },
+                { id: 'custom2', label: 'Custom 2', path: '' },
+                { id: 'custom3', label: 'Custom 3', path: '' },
+                { id: 'custom4', label: 'Custom 4', path: '' },
+            ];
+        }
+        function saveCustomBgs() { try { localStorage.setItem('bulk_custom_bgs', JSON.stringify(customBgs)); } catch (e) { } }
+
+        let activeBgId = 'default';
+
+        function buildBgGrid() {
+            const grid = document.getElementById('bgGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            const allBgs = [...CSS_BACKGROUNDS, ...customBgs.filter(b => b.path)];
+            allBgs.forEach((bg) => {
+                const div = document.createElement('div');
+                div.className = 'bg-opt' + (bg.id === activeBgId ? ' active' : '');
+                div.onclick = () => setBg(bg.id, div);
+                if (bg.path) {
+                    div.innerHTML = `<img src="${bg.path}" class="bg-img-thumb" alt="${bg.label}" onerror="this.parentElement.style.display='none'">`;
+                } else {
+                    div.innerHTML = `<div style="background:${bg.thumb || bg.css};width:100%;height:100%;"></div>`;
+                }
+                grid.appendChild(div);
+            });
+        }
+
+        function setBg(id, btn) {
+            activeBgId = id;
+            const bgDef = [...CSS_BACKGROUNDS, ...customBgs].find(b => b.id === id);
+            if (!bgDef) return;
+            ['finalArtBg', 'cardArtBg'].forEach(elId => {
+                const el = document.getElementById(elId);
+                if (!el) return;
+                if (bgDef.path) {
+                    el.style.background = '';
+                    el.style.backgroundImage = `url('${bgDef.path}')`;
+                    el.style.backgroundSize = 'cover';
+                    el.style.backgroundPosition = 'center';
+                } else {
+                    el.style.backgroundImage = '';
+                    el.style.background = bgDef.css;
+                }
+            });
+            document.querySelectorAll('#bgGrid .bg-opt').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+        }
+
+        // PFP — uses unavatar.io/{handle} (auto-detects X/Twitter) with dicebear fallback
+        function setPfp(img, handle, knownUrl) {
+            if (knownUrl && knownUrl.startsWith('http')) {
+                img.src = knownUrl;
+                img.onerror = () => fallbackPfp(img, handle);
+                return;
+            }
+            const test = new Image();
+            test.crossOrigin = 'anonymous';
+            test.onload = () => { img.crossOrigin = 'anonymous'; img.src = test.src; };
+            test.onerror = () => fallbackPfp(img, handle);
+            // Base unavatar endpoint — resolves from multiple sources including X/Twitter
+            test.src = `https://unavatar.io/${handle}?fallback=false`;
+        }
+
+        function fallbackPfp(img, handle) {
+            img.crossOrigin = 'anonymous';
+            img.src = `https://api.dicebear.com/7.x/initials/svg?seed=${handle}&backgroundColor=1a1916&textColor=C8A96E&fontSize=40`;
+        }
+
+        let currentUser = null;
+        let authState = null;
+
+        function toast(msg, type = 'info') {
+            const t = document.getElementById('toast');
+            document.getElementById('toastMsg').textContent = msg;
+            t.className = 'toast ' + type + ' show';
+            clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 3800);
+        }
+
+        const SECTIONS = ['heroSection', 'loadingSection', 'previewSection', 'claimedSection', 'ineligibleSection', 'collectionSection'];
+        function showOnly(id) { SECTIONS.forEach(s => document.getElementById(s).classList.toggle('hidden', s !== id)); }
+
+        function goTab(tab) {
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            if (tab === 'cards') {
+                document.getElementById('tabCards').classList.add('active');
+                if (!currentUser) showOnly('heroSection');
+                else showOnly('claimedSection');
+            } else if (tab === 'claimed-list') {
+                document.getElementById('tabClaimed').classList.add('active');
+                renderCollection();
+                showOnly('collectionSection');
+            }
+        }
+
+        function updateHints() {
+            const keys = Object.keys(whitelist).slice(0, 2);
+            if (keys.length) {
+                const samples = keys.map(k => `<span onclick="setInput('${whitelist[k].username}')">${whitelist[k].username}</span>`).join(' or ');
+                document.getElementById('hintLine').innerHTML = 'Try: ' + samples;
+            }
+        }
+        function setInput(v) { document.getElementById('usernameInput').value = v; }
+
+        async function checkEligibility() {
+            const raw = document.getElementById('usernameInput').value.trim().replace(/^@/, '');
+            if (!raw) { toast('Enter your X handle', 'error'); return; }
+            currentUser = null;
+            authState = null;
+            showOnly('loadingSection');
+            await runSteps(raw);
+        }
+
+        async function runSteps(raw) {
+            const steps = ['step1', 'step2', 'step3', 'step4'], delays = [650, 550, 700, 500];
+            for (let i = 0; i < steps.length; i++) {
+                document.getElementById(steps[i]).classList.add('active');
+                await sleep(delays[i]);
+                document.getElementById(steps[i]).classList.remove('active');
+                document.getElementById(steps[i]).classList.add('done');
+            }
+            await sleep(200);
+            const key = raw.toLowerCase();
+            const user = whitelist[key];
+            if (user) {
+                currentUser = { ...user, _rawHandle: raw };
+                buildPreviewCard(currentUser);
+                resetAuthUI();
+                showOnly('previewSection');
+                toast('Card found! Connect X to verify.', 'info');
+            } else {
+                showIneligible();
+            }
+            setTimeout(() => steps.forEach(s => { document.getElementById(s).classList.remove('active', 'done'); }), 800);
+        }
+        function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+        function showIneligible() {
+            const imgEl = document.getElementById('ineligibleImg');
+            if (config.ineligibleImg) {
+                imgEl.src = config.ineligibleImg;
+                imgEl.style.display = 'block';
+            } else {
+                imgEl.style.display = 'none';
+            }
+            showOnly('ineligibleSection');
+        }
+
+        function buildPreviewCard(user) {
+            setPfp(document.getElementById('cardPfp'), user._rawHandle || user.username, user._pfp);
+            document.getElementById('cardUsername').textContent = '@' + user.username;
+            document.getElementById('cardNum').textContent = user.cardNumber;
+            document.getElementById('cardTagline').textContent = user.tagline || 'Elite Bulktrade Member';
+            document.getElementById('cardRealName').textContent = user._realName || '';
+            setBg('default', null);
+            buildBgGrid();
+        }
+
+        function resetAuthUI() {
+            document.getElementById('authNotConnected').classList.remove('hidden');
+            document.getElementById('authLoading').classList.add('hidden');
+            document.getElementById('authConnected').classList.add('hidden');
+            document.getElementById('authTitle').textContent = 'Verify Identity';
+            document.getElementById('authSub').textContent = 'Authenticate with X to prove ownership and unlock claiming.';
+        }
+
+        function showAuthUI(handle, pfp, name) {
+            document.getElementById('authNotConnected').classList.add('hidden');
+            document.getElementById('authLoading').classList.add('hidden');
+            document.getElementById('authConnected').classList.remove('hidden');
+            document.getElementById('authTitle').textContent = 'Identity Verified';
+            document.getElementById('authSub').textContent = 'Your X account is connected. You may now claim your card.';
+            document.getElementById('authHandleDisplay').textContent = '@' + handle;
+            document.getElementById('authPfp').src = pfp || '';
+            document.getElementById('cardRealName').textContent = name || '';
+            if (pfp) setPfp(document.getElementById('cardPfp'), handle, pfp);
+        }
+
+        async function connectX() {
+            if (!currentUser) return;
+            document.getElementById('authNotConnected').classList.add('hidden');
+            document.getElementById('authLoading').classList.remove('hidden');
+
+            try {
+                sessionStorage.setItem('bulk_pending_handle', currentUser._rawHandle || currentUser.username);
+                const res = await fetch('/.netlify/functions/get-auth-url');
+
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    toast('Server error: ' + (data.error || `HTTP ${res.status}`), 'error');
+                    resetAuthUI();
+                    return;
+                }
+
+                const data = await res.json();
+                if (data.error || !data.authUrl) {
+                    toast('OAuth error: ' + (data.error || 'No auth URL'), 'error');
+                    resetAuthUI();
+                    return;
+                }
+
+                await sleep(400);
+                window.location.href = data.authUrl;
+
+            } catch (err) {
+                console.error(err);
+                toast('Cannot reach function. Check that files are in netlify/functions/ and redeploy.', 'error');
+                resetAuthUI();
+            }
+        }
+
+        function handleOAuthReturn() {
+            const params = new URLSearchParams(window.location.search);
+            const success = params.get('oauth_success');
+            const oauthHandle = params.get('handle');
+            const oauthName = params.get('name');
+            const oauthError = params.get('oauth_error');
+            const pfpUrl = params.get('pfp');
+
+            if (success || oauthError) window.history.replaceState({}, '', window.location.pathname);
+
+            if (oauthError) {
+                toast('X auth failed: ' + oauthError, 'error');
+                showOnly('heroSection');
+                return;
+            }
+
+            if (success && oauthHandle) {
+                const key = oauthHandle.toLowerCase();
+                const user = whitelist[key];
+                if (!user) {
+                    sessionStorage.removeItem('bulk_pending_handle');
+                    toast('X account @' + oauthHandle + ' is not on the whitelist', 'error');
+                    showIneligible();
+                    return;
+                }
+                currentUser = { ...user, _rawHandle: oauthHandle };
+                authState = { handle: oauthHandle, pfp: decodeURIComponent(pfpUrl || ''), name: oauthName || '' };
+                sessionStorage.setItem('bulk_auth', JSON.stringify(authState));
+                sessionStorage.removeItem('bulk_pending_handle');
+
+                buildPreviewCard(currentUser);
+                if (authState.pfp) setPfp(document.getElementById('cardPfp'), authState.handle, authState.pfp);
+                showAuthUI(authState.handle, authState.pfp, authState.name);
+                showOnly('previewSection');
+                toast('X account connected. Ready to claim.', 'info');
+            }
+        }
+
+        function checkStoredAuth() {
+            const saved = sessionStorage.getItem('bulk_auth');
+            const pending = sessionStorage.getItem('bulk_pending_handle');
+            if (saved && pending) {
+                try {
+                    authState = JSON.parse(saved);
+                    const key = pending.toLowerCase();
+                    if (whitelist[key]) {
+                        currentUser = { ...whitelist[key], _rawHandle: pending };
+                        buildPreviewCard(currentUser);
+                        if (authState.pfp) setPfp(document.getElementById('cardPfp'), authState.handle, authState.pfp);
+                        showAuthUI(authState.handle, authState.pfp, authState.name);
+                        showOnly('previewSection');
+                    }
+                } catch (e) { sessionStorage.removeItem('bulk_auth'); sessionStorage.removeItem('bulk_pending_handle'); }
+            }
+        }
+
+        async function claimCard() {
+            if (!currentUser || !authState) {
+                toast('Please connect your X account first', 'error');
+                return;
+            }
+            toast('Minting your Elite card...', 'info');
+            await sleep(600);
+            completeClaim(authState.handle, authState.pfp, authState.name);
+        }
+
+        function completeClaim(rawHandle, realPfp, realName) {
+            const u = currentUser;
+            if (!u) return;
+
+            const key = (rawHandle || u._rawHandle || u.username).toLowerCase();
+            if (whitelist[key]) {
+                whitelist[key].claimed = true;
+                if (realPfp) whitelist[key]._pfp = realPfp;
+                if (realName) whitelist[key]._realName = realName;
+            }
+            saveWL();
+
+            setPfp(document.getElementById('finalPfp'), rawHandle || u.username, realPfp || u._pfp);
+
+            document.getElementById('finalUsername').textContent = '@' + u.username;
+            document.getElementById('finalNum').textContent = u.cardNumber;
+            document.getElementById('finalTagline').textContent = u.tagline || 'Elite Bulktrade Member';
+            document.getElementById('finalRealName').textContent = realName || u._realName || '';
+            const d = new Date();
+            document.getElementById('mintDateEl').textContent = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+            setBg(activeBgId, null);
+            buildBgGrid();
+
+            document.getElementById('userPill').classList.remove('hidden');
+            document.getElementById('userPill').style.display = 'flex';
+            document.getElementById('navUname').textContent = '@' + u.username;
+
+            sessionStorage.removeItem('bulk_auth');
+            sessionStorage.removeItem('bulk_pending_handle');
+            authState = null;
+
+            showOnly('claimedSection');
+            confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ['#C8A96E', '#F2EEE4', '#A8863E', '#fff'] });
+            setTimeout(() => confetti({ particleCount: 60, spread: 110, origin: { y: 0.5 }, angle: 60, colors: ['#C8A96E', '#fff'] }), 700);
+            setTimeout(() => confetti({ particleCount: 60, spread: 110, origin: { y: 0.5 }, angle: 120, colors: ['#A8863E', '#F2EEE4'] }), 1000);
+            toast('✦ Card minted! Welcome to Bulk Elite', 'info');
+        }
+
+        async function downloadCard() {
+            toast('Generating HD card...', 'info');
+            const card = document.getElementById('finalCard');
+            try {
+                const pfpImg = document.getElementById('finalPfp');
+                if (!pfpImg.complete || pfpImg.naturalHeight === 0) {
+                    await new Promise((res) => { pfpImg.onload = res; pfpImg.onerror = res; setTimeout(res, 2000); });
+                }
+                const canvas = await html2canvas(card, {
+                    scale: 3, backgroundColor: null, logging: false, useCORS: true, allowTaint: true, imageTimeout: 8000,
+                });
+                const a = document.createElement('a');
+                a.download = `BULK-ELITE-${currentUser.username}-${currentUser.cardNumber}.png`;
+                a.href = canvas.toDataURL('image/png');
+                a.click();
+                toast('Downloaded! Share it on X ✦', 'info');
+            } catch (err) {
+                toast('Download failed — screenshot instead', 'error');
+            }
+        }
+
+        function shareCard() {
+            const t = `Just minted my Bulk Elite Card #${currentUser.cardNumber} ✦\n\n@BulkTrade — One Exchange, Infinite Markets on Solana\n\nClaim yours:`;
+            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(t)}&url=${encodeURIComponent(window.location.origin)}`, '_blank');
+        }
+
+        function renderCollection() {
+            const grid = document.getElementById('collGrid');
+            grid.innerHTML = '';
+            const all = Object.values(whitelist);
+            const claimedCount = all.filter(u => u.claimed).length;
+            document.getElementById('claimedCount').textContent = claimedCount + ' / ' + all.length + ' minted';
+
+            all.sort((a, b) => (b.claimed ? 1 : 0) - (a.claimed ? 1 : 0) || parseInt(a.cardNumber) - parseInt(b.cardNumber));
+
+            all.forEach(u => {
+                const d = document.createElement('div');
+                d.className = 'coll-card' + (u.claimed ? ' claimed' : '');
+
+                if (u.claimed) {
+                    d.onclick = () => window.open(`https://x.com/${u.username}`, '_blank');
+                    d.innerHTML = `
+                        <div class="coll-pfp"><img src="" alt="" crossorigin="anonymous"></div>
+                        <div class="coll-uname">@${u.username}</div>
+                        <div class="coll-num">#${u.cardNumber}</div>
+                        <div class="claimed-badge">Claimed ✓</div>
+                        ${u.tagline ? `<div class="coll-tagline">${u.tagline}</div>` : ''}
+                    `;
+                    const img = d.querySelector('img');
+                    setPfp(img, u.username, u._pfp);
+                } else {
+                    d.innerHTML = `
+                        <div class="coll-pfp"><div class="coll-anon">?</div></div>
+                        <div class="coll-uname" style="color:rgba(255,255,255,0.1);letter-spacing:3px;">•••••</div>
+                        <div class="coll-num">#${u.cardNumber}</div>
+                        <div class="unclaimed-badge">Unclaimed</div>
+                    `;
+                }
+                grid.appendChild(d);
+            });
+        }
+
+        function resetSearch() {
+            document.getElementById('usernameInput').value = '';
+            currentUser = null;
+            authState = null;
+            sessionStorage.removeItem('bulk_auth');
+            sessionStorage.removeItem('bulk_pending_handle');
+            resetAuthUI();
+            ['step1', 'step2', 'step3', 'step4'].forEach(s => document.getElementById(s).classList.remove('active', 'done'));
+            showOnly('heroSection');
+            document.getElementById('tabCards').classList.add('active');
+            document.getElementById('tabClaimed').classList.remove('active');
+        }
+
+        function openAdmin() { renderWL(); renderBgAdmin(); renderConfig(); document.getElementById('adminModal').classList.remove('hidden'); }
+        function closeAdmin() { document.getElementById('adminModal').classList.add('hidden'); }
+
+        function renderWL() {
+            const c = document.getElementById('wlList'); c.innerHTML = '';
+            Object.entries(whitelist).sort((a, b) => parseInt(a[1].cardNumber) - parseInt(b[1].cardNumber)).forEach(([key, u]) => {
+                const row = document.createElement('div');
+                row.className = 'wl-entry';
+                row.innerHTML = `
+                    <input type="text" value="${u.username}" placeholder="handle" data-key="${key}" onchange="renameHandle('${key}',this.value)">
+                    <input type="text" value="${u.cardNumber}" placeholder="#" style="width:65px;" onchange="updateField('${key}','cardNumber',this.value)">
+                    <input type="text" value="${u.tagline || ''}" placeholder="Custom tagline" style="flex:3;" onchange="updateField('${key}','tagline',this.value)">
+                    <button class="del-btn" onclick="deleteEntry('${key}')">✕</button>
+                `;
+                c.appendChild(row);
+            });
+        }
+
+        function renameHandle(oldKey, newVal) {
+            const newKey = newVal.toLowerCase().replace(/^@/, '');
+            if (newKey === oldKey) return;
+            whitelist[newKey] = { ...whitelist[oldKey], username: newVal.replace(/^@/, '') };
+            delete whitelist[oldKey];
+            saveWL(); renderWL();
+        }
+        function updateField(key, field, val) {
+            if (!whitelist[key]) return;
+            whitelist[key][field] = val;
+            saveWL();
+        }
+        function deleteEntry(key) { delete whitelist[key]; saveWL(); renderWL(); toast('Removed @' + key, 'info'); }
+        function addEntry() {
+            const h = document.getElementById('newHandle').value.trim().replace(/^@/, '');
+            const n = document.getElementById('newCard').value.trim() || String(Object.keys(whitelist).length + 1).padStart(3, '0');
+            const t = document.getElementById('newTagline').value.trim();
+            if (!h) { toast('Enter a handle', 'error'); return; }
+            const key = h.toLowerCase();
+            whitelist[key] = { username: h, cardNumber: n, tagline: t, claimed: false };
+            saveWL(); renderWL();
+            document.getElementById('newHandle').value = '';
+            document.getElementById('newCard').value = '';
+            document.getElementById('newTagline').value = '';
+            toast('Added @' + h, 'info');
+            updateHints();
+        }
+
+        function renderBgAdmin() {
+            const grid = document.getElementById('bgAdminGrid'); grid.innerHTML = '';
+            customBgs.forEach((bg, i) => {
+                const div = document.createElement('div');
+                div.className = 'bg-admin-item';
+                div.innerHTML = `
+                    <div class="bg-label">${bg.label}</div>
+                    ${bg.path ? `<img src="${bg.path}" class="bg-admin-preview" alt="" onerror="this.style.display='none'">` : '<div style="width:100%;height:70px;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;font-family:Space Mono,monospace;font-size:9px;color:rgba(255,255,255,0.2);">No image</div>'}
+                    <input type="text" value="${bg.path}" placeholder="/images/my-bg.jpg or https://..." data-idx="${i}" oninput="customBgs[${i}].path=this.value">
+                    <input type="text" value="${bg.label}" placeholder="Label" style="margin-top:4px;" oninput="customBgs[${i}].label=this.value">
+                `;
+                grid.appendChild(div);
+            });
+        }
+        function saveBgConfig() { saveCustomBgs(); buildBgGrid(); toast('Background config saved', 'info'); renderBgAdmin(); }
+
+        function renderConfig() {
+            document.getElementById('ineligibleImgInput').value = config.ineligibleImg || '';
+        }
+        function updateIneligibleImg(val) {
+            config.ineligibleImg = val.trim();
+            saveConfig();
+            toast('Ineligible image updated', 'info');
+        }
+
+        document.getElementById('usernameInput').addEventListener('keypress', e => { if (e.key === 'Enter') checkEligibility(); });
+        document.getElementById('adminModal').addEventListener('click', e => { if (e.target === document.getElementById('adminModal')) closeAdmin(); });
+
+        updateHints();
+        handleOAuthReturn();
+        checkStoredAuth();
+        buildBgGrid();
+    </script>
+</body>
+
+</html>
