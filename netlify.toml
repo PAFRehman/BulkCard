@@ -2,13 +2,17 @@
   publish = "."
   functions = "netlify/functions"
 
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
+[dev]
+  functions = "netlify/functions"
+  targetPort = 8888
 
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"
-    X-Content-Type-Options = "nosniff"
+[template.environment]
+  X_CLIENT_ID = "TXBENUdEdG00VUZwNXBoMlVmM006MTpjaQ"
+  X_CLIENT_SECRET = "HrQuEJV4tDTwBDSqdNZVe_LjT7ySKgoEzl5jP-X1eMkw5M11jY"
+  X_REDIRECT_URI = "https://bulktrade.netlify.app/.netlify/functions/auth-callback"
+  FRONTEND_URL = "https://bulktrade.netlify.app"
+  X_BEARER_TOKEN = "AAAAAAAAAAAAAAAAAAAAANhD9AEAAAAA0mR6fyD%2BnxyGEL0sTF%2BBXbQUNzY%3DVi8FYATKXk7kdd8DnonYQsjG0fNSV66iSwymSkTRMk2gu2eYis"
+
+# If you want to store vars here instead of Netlify UI (not recommended for secrets):
+# [context.production.environment]
+#   X_CLIENT_ID = "..."
