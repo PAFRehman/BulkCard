@@ -6,13 +6,21 @@
   functions = "netlify/functions"
   targetPort = 8888
 
-[template.environment]
-  X_CLIENT_ID = "TXBENUdEdG00VUZwNXBoMlVmM006MTpjaQ"
-  X_CLIENT_SECRET = "HrQuEJV4tDTwBDSqdNZVe_LjT7ySKgoEzl5jP-X1eMkw5M11jY"
-  X_REDIRECT_URI = "https://bulktrade.netlify.app/.netlify/functions/auth-callback"
-  FRONTEND_URL = "https://bulktrade.netlify.app"
-  X_BEARER_TOKEN = "AAAAAAAAAAAAAAAAAAAAANhD9AEAAAAA0mR6fyD%2BnxyGEL0sTF%2BBXbQUNzY%3DVi8FYATKXk7kdd8DnonYQsjG0fNSV66iSwymSkTRMk2gu2eYis"
+# ⚠️  DO NOT PUT REAL SECRETS HERE
+# Set these in Netlify Dashboard → Site settings → Environment variables
+#
+# Required:
+#   X_CLIENT_ID       = your_x_app_client_id
+#   X_CLIENT_SECRET   = your_x_app_client_secret  
+#   X_REDIRECT_URI    = https://your-site.netlify.app/.netlify/functions/auth-callback
+#   FRONTEND_URL      = https://your-site.netlify.app
+#
+# Optional (for server-side PFP fetching):
+#   X_BEARER_TOKEN    = your_app_only_bearer_token
 
-# If you want to store vars here instead of Netlify UI (not recommended for secrets):
-# [context.production.environment]
-#   X_CLIENT_ID = "..."
+[template.environment]
+  X_CLIENT_ID = "set_in_dashboard"
+  X_CLIENT_SECRET = "set_in_dashboard"
+  X_REDIRECT_URI = "set_in_dashboard"
+  FRONTEND_URL = "set_in_dashboard"
+  X_BEARER_TOKEN = "set_in_dashboard_or_leave_empty"
