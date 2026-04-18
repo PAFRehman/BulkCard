@@ -2268,24 +2268,64 @@
             if (btn) btn.classList.add('active');
         }
 
-        // PFP — uses unavatar.io/{handle} (auto-detects X/Twitter) with dicebear fallback
+        // FIXED PFP SYSTEM
         function setPfp(img, handle, knownUrl) {
+            img.onerror = null;
+            img.onload = null;
+
             if (knownUrl && knownUrl.startsWith('http')) {
-                img.src = knownUrl;
+                let url = knownUrl;
+                // Upgrade X/Twitter images to high-res
+                if (url.includes('twimg.com') || url.includes('twitter.com')) {
+                    url = url.replace('_normal.', '.').replace('_mini.', '.').replace('_bigger.', '.');
+                }
+                img.crossOrigin = 'anonymous';
+                img.src = url;
                 img.onerror = () => fallbackPfp(img, handle);
                 return;
             }
-            const test = new Image();
-            test.crossOrigin = 'anonymous';
-            test.onload = () => { img.crossOrigin = 'anonymous'; img.src = test.src; };
-            test.onerror = () => fallbackPfp(img, handle);
-            // Base unavatar endpoint — resolves from multiple sources including X/Twitter
-            test.src = `https://unavatar.io/${handle}?fallback=false`;
+
+            // Attempt server-side fetch (only works if X_BEARER_TOKEN is set)
+            fetch(`/.netlify/functions/fetch-x-profile?username=${encodeURIComponent(handle)}`, { credentials: 'same-origin' })
+                .then(r => r.ok ? r.json() : Promise.reject('fetch failed'))
+                .then(data => {
+                    if (data?.data?.profile_image_url) {
+                        img.crossOrigin = 'anonymous';
+                        img.src = data.data.profile_image_url;
+                        // Cache to local storage for preloading
+                        const key = handle.toLowerCase();
+                        if (whitelist[key] && !whitelist[key]._pfp) {
+                            whitelist[key]._pfp = data.data.profile_image_url;
+                            saveWL();
+                        }
+                    } else {
+                        throw new Error('no image');
+                    }
+                })
+                .catch(() => {
+                    // Fallback chain
+                    const test = new Image();
+                    test.crossOrigin = 'anonymous';
+                    test.onload = () => { img.crossOrigin = 'anonymous'; img.src = test.src; };
+                    test.onerror = () => fallbackPfp(img, handle);
+                    test.src = `https://unavatar.io/x/${handle}?fallback=false`;
+                });
         }
 
         function fallbackPfp(img, handle) {
             img.crossOrigin = 'anonymous';
             img.src = `https://api.dicebear.com/7.x/initials/svg?seed=${handle}&backgroundColor=1a1916&textColor=C8A96E&fontSize=40`;
+        }
+
+        // Preload all claimed PFPs into browser cache
+        function preloadClaimedPfps() {
+            Object.values(whitelist).forEach(u => {
+                if (u.claimed && u._pfp) {
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.src = u._pfp;
+                }
+            });
         }
 
         let currentUser = null;
@@ -2397,6 +2437,7 @@
             if (pfp) setPfp(document.getElementById('cardPfp'), handle, pfp);
         }
 
+        // FIXED: credentials included so cookies stick
         async function connectX() {
             if (!currentUser) return;
             document.getElementById('authNotConnected').classList.add('hidden');
@@ -2404,7 +2445,7 @@
 
             try {
                 sessionStorage.setItem('bulk_pending_handle', currentUser._rawHandle || currentUser.username);
-                const res = await fetch('/.netlify/functions/get-auth-url');
+                const res = await fetch('/.netlify/functions/get-auth-url', { credentials: 'include' });
 
                 if (!res.ok) {
                     const data = await res.json().catch(() => ({}));
@@ -2425,18 +2466,19 @@
 
             } catch (err) {
                 console.error(err);
-                toast('Cannot reach function. Check that files are in netlify/functions/ and redeploy.', 'error');
+                toast('Cannot reach auth service. Ensure functions are deployed.', 'error');
                 resetAuthUI();
             }
         }
 
+        // FIXED: no double-decode on pfp param
         function handleOAuthReturn() {
             const params = new URLSearchParams(window.location.search);
             const success = params.get('oauth_success');
             const oauthHandle = params.get('handle');
             const oauthName = params.get('name');
             const oauthError = params.get('oauth_error');
-            const pfpUrl = params.get('pfp');
+            const pfpUrl = params.get('pfp'); // URLSearchParams already decodes
 
             if (success || oauthError) window.history.replaceState({}, '', window.location.pathname);
 
@@ -2456,7 +2498,7 @@
                     return;
                 }
                 currentUser = { ...user, _rawHandle: oauthHandle };
-                authState = { handle: oauthHandle, pfp: decodeURIComponent(pfpUrl || ''), name: oauthName || '' };
+                authState = { handle: oauthHandle, pfp: pfpUrl || '', name: oauthName || '' };
                 sessionStorage.setItem('bulk_auth', JSON.stringify(authState));
                 sessionStorage.removeItem('bulk_pending_handle');
 
@@ -2503,12 +2545,19 @@
             const key = (rawHandle || u._rawHandle || u.username).toLowerCase();
             if (whitelist[key]) {
                 whitelist[key].claimed = true;
-                if (realPfp) whitelist[key]._pfp = realPfp;
+                // FIXED: Store clean high-res PFP
+                if (realPfp) {
+                    let cleanPfp = realPfp;
+                    if (cleanPfp.includes('twimg.com') || cleanPfp.includes('twitter.com')) {
+                        cleanPfp = cleanPfp.replace('_normal.', '.').replace('_mini.', '.').replace('_bigger.', '.');
+                    }
+                    whitelist[key]._pfp = cleanPfp;
+                }
                 if (realName) whitelist[key]._realName = realName;
             }
             saveWL();
 
-            setPfp(document.getElementById('finalPfp'), rawHandle || u.username, realPfp || u._pfp);
+            setPfp(document.getElementById('finalPfp'), rawHandle || u.username, whitelist[key]?._pfp);
 
             document.getElementById('finalUsername').textContent = '@' + u.username;
             document.getElementById('finalNum').textContent = u.cardNumber;
@@ -2552,6 +2601,7 @@
                 a.click();
                 toast('Downloaded! Share it on X ✦', 'info');
             } catch (err) {
+                console.error('Download error:', err);
                 toast('Download failed — screenshot instead', 'error');
             }
         }
@@ -2561,6 +2611,7 @@
             window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(t)}&url=${encodeURIComponent(window.location.origin)}`, '_blank');
         }
 
+        // FIXED: Collection uses stored PFPs directly (preloaded)
         function renderCollection() {
             const grid = document.getElementById('collGrid');
             grid.innerHTML = '';
@@ -2577,24 +2628,32 @@
                 if (u.claimed) {
                     d.onclick = () => window.open(`https://x.com/${u.username}`, '_blank');
                     d.innerHTML = `
-                        <div class="coll-pfp"><img src="" alt="" crossorigin="anonymous"></div>
-                        <div class="coll-uname">@${u.username}</div>
-                        <div class="coll-num">#${u.cardNumber}</div>
-                        <div class="claimed-badge">Claimed ✓</div>
-                        ${u.tagline ? `<div class="coll-tagline">${u.tagline}</div>` : ''}
-                    `;
+                <div class="coll-pfp"><img src="" alt="" crossorigin="anonymous"></div>
+                <div class="coll-uname">@${u.username}</div>
+                <div class="coll-num">#${u.cardNumber}</div>
+                <div class="claimed-badge">Claimed ✓</div>
+                ${u.tagline ? `<div class="coll-tagline">${u.tagline}</div>` : ''}
+            `;
                     const img = d.querySelector('img');
-                    setPfp(img, u.username, u._pfp);
+                    if (u._pfp) {
+                        img.crossOrigin = 'anonymous';
+                        img.src = u._pfp;
+                        img.onerror = () => fallbackPfp(img, u.username);
+                    } else {
+                        setPfp(img, u.username, null);
+                    }
                 } else {
                     d.innerHTML = `
-                        <div class="coll-pfp"><div class="coll-anon">?</div></div>
-                        <div class="coll-uname" style="color:rgba(255,255,255,0.1);letter-spacing:3px;">•••••</div>
-                        <div class="coll-num">#${u.cardNumber}</div>
-                        <div class="unclaimed-badge">Unclaimed</div>
-                    `;
+                <div class="coll-pfp"><div class="coll-anon">?</div></div>
+                <div class="coll-uname" style="color:rgba(255,255,255,0.1);letter-spacing:3px;">•••••</div>
+                <div class="coll-num">#${u.cardNumber}</div>
+                <div class="unclaimed-badge">Unclaimed</div>
+            `;
                 }
                 grid.appendChild(d);
             });
+
+            preloadClaimedPfps();
         }
 
         function resetSearch() {
@@ -2619,11 +2678,11 @@
                 const row = document.createElement('div');
                 row.className = 'wl-entry';
                 row.innerHTML = `
-                    <input type="text" value="${u.username}" placeholder="handle" data-key="${key}" onchange="renameHandle('${key}',this.value)">
-                    <input type="text" value="${u.cardNumber}" placeholder="#" style="width:65px;" onchange="updateField('${key}','cardNumber',this.value)">
-                    <input type="text" value="${u.tagline || ''}" placeholder="Custom tagline" style="flex:3;" onchange="updateField('${key}','tagline',this.value)">
-                    <button class="del-btn" onclick="deleteEntry('${key}')">✕</button>
-                `;
+            <input type="text" value="${u.username}" placeholder="handle" data-key="${key}" onchange="renameHandle('${key}',this.value)">
+            <input type="text" value="${u.cardNumber}" placeholder="#" style="width:65px;" onchange="updateField('${key}','cardNumber',this.value)">
+            <input type="text" value="${u.tagline || ''}" placeholder="Custom tagline" style="flex:3;" onchange="updateField('${key}','tagline',this.value)">
+            <button class="del-btn" onclick="deleteEntry('${key}')">✕</button>
+        `;
                 c.appendChild(row);
             });
         }
@@ -2662,11 +2721,11 @@
                 const div = document.createElement('div');
                 div.className = 'bg-admin-item';
                 div.innerHTML = `
-                    <div class="bg-label">${bg.label}</div>
-                    ${bg.path ? `<img src="${bg.path}" class="bg-admin-preview" alt="" onerror="this.style.display='none'">` : '<div style="width:100%;height:70px;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;font-family:Space Mono,monospace;font-size:9px;color:rgba(255,255,255,0.2);">No image</div>'}
-                    <input type="text" value="${bg.path}" placeholder="/images/my-bg.jpg or https://..." data-idx="${i}" oninput="customBgs[${i}].path=this.value">
-                    <input type="text" value="${bg.label}" placeholder="Label" style="margin-top:4px;" oninput="customBgs[${i}].label=this.value">
-                `;
+            <div class="bg-label">${bg.label}</div>
+            ${bg.path ? `<img src="${bg.path}" class="bg-admin-preview" alt="" onerror="this.style.display='none'">` : '<div style="width:100%;height:70px;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;font-family:Space Mono,monospace;font-size:9px;color:rgba(255,255,255,0.2);">No image</div>'}
+            <input type="text" value="${bg.path}" placeholder="/images/my-bg.jpg or https://..." data-idx="${i}" oninput="customBgs[${i}].path=this.value">
+            <input type="text" value="${bg.label}" placeholder="Label" style="margin-top:4px;" oninput="customBgs[${i}].label=this.value">
+        `;
                 grid.appendChild(div);
             });
         }
