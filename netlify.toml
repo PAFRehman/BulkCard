@@ -2,25 +2,13 @@
   publish = "."
   functions = "netlify/functions"
 
+[functions]
+  node_bundler = "esbuild"
+  # Ensure Node 18+ for native fetch
+  # Netlify usually defaults to 18 now, but this ensures it:
+  
 [dev]
   functions = "netlify/functions"
   targetPort = 8888
 
-# ⚠️  DO NOT PUT REAL SECRETS HERE
-# Set these in Netlify Dashboard → Site settings → Environment variables
-#
-# Required:
-#   X_CLIENT_ID       = your_x_app_client_id
-#   X_CLIENT_SECRET   = your_x_app_client_secret  
-#   X_REDIRECT_URI    = https://your-site.netlify.app/.netlify/functions/auth-callback
-#   FRONTEND_URL      = https://your-site.netlify.app
-#
-# Optional (for server-side PFP fetching):
-#   X_BEARER_TOKEN    = your_app_only_bearer_token
-
-[template.environment]
-  X_CLIENT_ID = "set_in_dashboard"
-  X_CLIENT_SECRET = "set_in_dashboard"
-  X_REDIRECT_URI = "set_in_dashboard"
-  FRONTEND_URL = "set_in_dashboard"
-  X_BEARER_TOKEN = "set_in_dashboard_or_leave_empty"
+# Environment variables MUST be set in Netlify Dashboard, not here
