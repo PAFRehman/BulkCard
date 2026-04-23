@@ -752,7 +752,8 @@
         }
 
         #cardArtBg,
-        #finalArtBg {
+        #finalArtBg,
+        #alreadyClaimedArtBg {
             width: 100%;
             height: 100%;
             transition: background 0.5s;
@@ -1971,6 +1972,81 @@
             </div>
         </section>
 
+        <section id="alreadyClaimedSection" class="section hidden">
+            <div class="preview-wrap">
+                <div class="card-wrapper au">
+                    <div class="trading-card verified glitch-ui" id="alreadyClaimedCard">
+                        <div class="card-glow"></div>
+                        <div class="card-shine"></div>
+                        <div class="card-corner tl"></div>
+                        <div class="card-corner tr"></div>
+                        <div class="card-corner bl"></div>
+                        <div class="card-corner br"></div>
+                        <div class="card-badge">Elite</div>
+                        <div class="card-art" id="alreadyClaimedArt">
+                            <div id="alreadyClaimedArtBg" style="width:100%;height:100%;"></div>
+                            <div class="card-art-overlay"></div>
+                        </div>
+                        <div class="card-inner">
+                            <div class="card-header">
+                                <span class="card-brand-text">Bulk Elite</span>
+                                <span class="card-serial">#<span id="alreadyClaimedNum">001</span></span>
+                            </div>
+                            <div class="card-pfp-wrap">
+                                <img id="alreadyClaimedPfp" src="" alt="" crossorigin="anonymous">
+                                <div class="card-pfp-overlay"></div>
+                            </div>
+                            <div class="card-info">
+                                <div class="card-uname" id="alreadyClaimedUsername">@handle</div>
+                                <div class="card-realname" id="alreadyClaimedRealName"></div>
+                                <div class="card-tagline" id="alreadyClaimedTagline">Elite Bulktrade Member</div>
+                            </div>
+                            <div class="card-footer">
+                                <div class="card-status" style="color:var(--gold);">
+                                    <div class="status-dot"></div>ALREADY CLAIMED ✓
+                                </div>
+                                <div class="card-wm">BULK.TRADE</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="preview-right au2">
+                    <div class="section-title">Card<br><em>Already Claimed</em></div>
+                    <p class="section-sub">This Elite card has already been minted. Sign in with your X account to view your card details and download options.</p>
+
+                    <div class="connect-box" id="viewAuthBox">
+                        <div class="connect-box-title">Verify Identity</div>
+                        <div class="connect-box-sub">Authenticate with X to prove ownership and unlock your claimed card.</div>
+
+                        <div id="viewAuthNotConnected">
+                            <button class="btn btn-x" id="viewConnectBtn" onclick="signInToView()">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                                </svg>
+                                Sign in to View
+                            </button>
+                        </div>
+
+                        <div id="viewAuthLoading" class="hidden" style="text-align:center;padding:10px;">
+                            <div class="spin-ring" style="margin-bottom:10px;"></div>
+                            <p style="font-family:'Space Mono',monospace;font-size:10px;color:var(--gold);">Redirecting to X...</p>
+                        </div>
+                    </div>
+
+                    <div class="perks">
+                        <div class="perk"><span class="perk-icon">✦</span> Exclusive Discord Elite channel</div>
+                        <div class="perk"><span class="perk-icon">✦</span> Zero trading fees for 30 days</div>
+                        <div class="perk"><span class="perk-icon">✦</span> Airdrop eligibility + bonus multiplier</div>
+                        <div class="perk"><span class="perk-icon">✦</span> Early access to all new features</div>
+                    </div>
+                    <button onclick="resetSearch()"
+                        style="font-family:'Space Mono',monospace;font-size:10px;color:rgba(255,255,255,0.2);cursor:none;background:none;border:none;margin-top:16px;transition:color 0.2s;letter-spacing:0.05em;"
+                        onmouseover="this.style.color='var(--cream)'"
+                        onmouseout="this.style.color='rgba(255,255,255,0.2)'">← Different username</button>
+                </div>
+            </div>
+        </section>
+
         <section id="claimedSection" class="section hidden">
             <div class="claimed-wrap">
                 <div class="card-wrapper au">
@@ -2254,7 +2330,7 @@
             activeBgId = id;
             const bgDef = [...CSS_BACKGROUNDS, ...customBgs].find(b => b.id === id);
             if (!bgDef) return;
-            ['finalArtBg', 'cardArtBg'].forEach(elId => {
+            ['finalArtBg', 'cardArtBg', 'alreadyClaimedArtBg'].forEach(elId => {
                 const el = document.getElementById(elId);
                 if (!el) return;
                 if (bgDef.path) {
@@ -2341,7 +2417,7 @@
             clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 3800);
         }
 
-        const SECTIONS = ['heroSection', 'loadingSection', 'previewSection', 'claimedSection', 'ineligibleSection', 'collectionSection'];
+        const SECTIONS = ['heroSection', 'loadingSection', 'previewSection', 'alreadyClaimedSection', 'claimedSection', 'ineligibleSection', 'collectionSection'];
         function showOnly(id) { SECTIONS.forEach(s => document.getElementById(s).classList.toggle('hidden', s !== id)); }
 
         function goTab(tab) {
@@ -2349,7 +2425,17 @@
             if (tab === 'cards') {
                 document.getElementById('tabCards').classList.add('active');
                 if (!currentUser) showOnly('heroSection');
-                else showOnly('claimedSection');
+                else {
+                    const key = (currentUser._rawHandle || currentUser.username).toLowerCase();
+                    const user = whitelist[key];
+                    const claimedPopulated = document.getElementById('finalUsername').textContent !== '@handle';
+                    if (user && user.claimed && !claimedPopulated) {
+                        buildAlreadyClaimedCard(currentUser);
+                        showOnly('alreadyClaimedSection');
+                    } else {
+                        showOnly('claimedSection');
+                    }
+                }
             } else if (tab === 'claimed-list') {
                 document.getElementById('tabClaimed').classList.add('active');
                 renderCollection();
@@ -2388,10 +2474,16 @@
             const user = whitelist[key];
             if (user) {
                 currentUser = { ...user, _rawHandle: raw };
-                buildPreviewCard(currentUser);
-                resetAuthUI();
-                showOnly('previewSection');
-                toast('Card found! Connect X to verify.', 'info');
+                if (user.claimed) {
+                    buildAlreadyClaimedCard(currentUser);
+                    showOnly('alreadyClaimedSection');
+                    toast('This card has already been claimed. Sign in to view.', 'info');
+                } else {
+                    buildPreviewCard(currentUser);
+                    resetAuthUI();
+                    showOnly('previewSection');
+                    toast('Card found! Connect X to verify.', 'info');
+                }
             } else {
                 showIneligible();
             }
@@ -2418,6 +2510,15 @@
             document.getElementById('cardRealName').textContent = user._realName || '';
             setBg('default', null);
             buildBgGrid();
+        }
+
+        function buildAlreadyClaimedCard(user) {
+            setPfp(document.getElementById('alreadyClaimedPfp'), user._rawHandle || user.username, user._pfp);
+            document.getElementById('alreadyClaimedUsername').textContent = '@' + user.username;
+            document.getElementById('alreadyClaimedNum').textContent = user.cardNumber;
+            document.getElementById('alreadyClaimedTagline').textContent = user.tagline || 'Elite Bulktrade Member';
+            document.getElementById('alreadyClaimedRealName').textContent = user._realName || '';
+            setBg('default', null);
         }
 
         function resetAuthUI() {
@@ -2474,6 +2575,43 @@
             }
         }
 
+        async function signInToView() {
+            if (!currentUser) return;
+            document.getElementById('viewAuthNotConnected').classList.add('hidden');
+            document.getElementById('viewAuthLoading').classList.remove('hidden');
+
+            try {
+                sessionStorage.setItem('bulk_pending_handle', currentUser._rawHandle || currentUser.username);
+                sessionStorage.setItem('bulk_view_only', 'true');
+                const res = await fetch('/.netlify/functions/get-auth-url', { credentials: 'include' });
+
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    toast('Server error: ' + (data.error || `HTTP ${res.status}`), 'error');
+                    document.getElementById('viewAuthNotConnected').classList.remove('hidden');
+                    document.getElementById('viewAuthLoading').classList.add('hidden');
+                    return;
+                }
+
+                const data = await res.json();
+                if (data.error || !data.authUrl) {
+                    toast('OAuth error: ' + (data.error || 'No auth URL'), 'error');
+                    document.getElementById('viewAuthNotConnected').classList.remove('hidden');
+                    document.getElementById('viewAuthLoading').classList.add('hidden');
+                    return;
+                }
+
+                await sleep(400);
+                window.location.href = data.authUrl;
+
+            } catch (err) {
+                console.error(err);
+                toast('Cannot reach auth service. Ensure functions are deployed.', 'error');
+                document.getElementById('viewAuthNotConnected').classList.remove('hidden');
+                document.getElementById('viewAuthLoading').classList.add('hidden');
+            }
+        }
+
         // FIXED: no double-decode on pfp param
         function handleOAuthReturn() {
             const params = new URLSearchParams(window.location.search);
@@ -2496,20 +2634,42 @@
                 const user = whitelist[key];
                 if (!user) {
                     sessionStorage.removeItem('bulk_pending_handle');
+                    sessionStorage.removeItem('bulk_view_only');
                     toast('X account @' + oauthHandle + ' is not on the whitelist', 'error');
                     showIneligible();
                     return;
                 }
+
+                const viewOnly = sessionStorage.getItem('bulk_view_only') === 'true';
                 currentUser = { ...user, _rawHandle: oauthHandle };
                 authState = { handle: oauthHandle, pfp: pfpUrl || '', name: oauthName || '' };
                 sessionStorage.setItem('bulk_auth', JSON.stringify(authState));
                 sessionStorage.removeItem('bulk_pending_handle');
+                sessionStorage.removeItem('bulk_view_only');
 
-                buildPreviewCard(currentUser);
-                if (authState.pfp) setPfp(document.getElementById('cardPfp'), authState.handle, authState.pfp);
-                showAuthUI(authState.handle, authState.pfp, authState.name);
-                showOnly('previewSection');
-                toast('X account connected. Ready to claim.', 'info');
+                if (user.claimed || viewOnly) {
+                    // Show claimed section for already claimed users
+                    setPfp(document.getElementById('finalPfp'), oauthHandle, user._pfp);
+                    document.getElementById('finalUsername').textContent = '@' + user.username;
+                    document.getElementById('finalNum').textContent = user.cardNumber;
+                    document.getElementById('finalTagline').textContent = user.tagline || 'Elite Bulktrade Member';
+                    document.getElementById('finalRealName').textContent = oauthName || user._realName || '';
+                    const d = new Date();
+                    document.getElementById('mintDateEl').textContent = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    setBg(activeBgId, null);
+                    buildBgGrid();
+                    document.getElementById('userPill').classList.remove('hidden');
+                    document.getElementById('userPill').style.display = 'flex';
+                    document.getElementById('navUname').textContent = '@' + user.username;
+                    showOnly('claimedSection');
+                    toast('Welcome back to Bulk Elite', 'info');
+                } else {
+                    buildPreviewCard(currentUser);
+                    if (authState.pfp) setPfp(document.getElementById('cardPfp'), authState.handle, authState.pfp);
+                    showAuthUI(authState.handle, authState.pfp, authState.name);
+                    showOnly('previewSection');
+                    toast('X account connected. Ready to claim.', 'info');
+                }
             }
         }
 
@@ -2522,12 +2682,30 @@
                     const key = pending.toLowerCase();
                     if (whitelist[key]) {
                         currentUser = { ...whitelist[key], _rawHandle: pending };
-                        buildPreviewCard(currentUser);
-                        if (authState.pfp) setPfp(document.getElementById('cardPfp'), authState.handle, authState.pfp);
-                        showAuthUI(authState.handle, authState.pfp, authState.name);
-                        showOnly('previewSection');
+                        if (whitelist[key].claimed) {
+                            // Already claimed - show claimed section
+                            setPfp(document.getElementById('finalPfp'), pending, whitelist[key]._pfp);
+                            document.getElementById('finalUsername').textContent = '@' + whitelist[key].username;
+                            document.getElementById('finalNum').textContent = whitelist[key].cardNumber;
+                            document.getElementById('finalTagline').textContent = whitelist[key].tagline || 'Elite Bulktrade Member';
+                            document.getElementById('finalRealName').textContent = authState.name || whitelist[key]._realName || '';
+                            const d = new Date();
+                            document.getElementById('mintDateEl').textContent = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                            setBg(activeBgId, null);
+                            buildBgGrid();
+                            document.getElementById('userPill').classList.remove('hidden');
+                            document.getElementById('userPill').style.display = 'flex';
+                            document.getElementById('navUname').textContent = '@' + whitelist[key].username;
+                            showOnly('claimedSection');
+                            toast('Welcome back to Bulk Elite', 'info');
+                        } else {
+                            buildPreviewCard(currentUser);
+                            if (authState.pfp) setPfp(document.getElementById('cardPfp'), authState.handle, authState.pfp);
+                            showAuthUI(authState.handle, authState.pfp, authState.name);
+                            showOnly('previewSection');
+                        }
                     }
-                } catch (e) { sessionStorage.removeItem('bulk_auth'); sessionStorage.removeItem('bulk_pending_handle'); }
+                } catch (e) { sessionStorage.removeItem('bulk_auth'); sessionStorage.removeItem('bulk_pending_handle'); sessionStorage.removeItem('bulk_view_only'); }
             }
         }
 
@@ -2665,7 +2843,13 @@
             authState = null;
             sessionStorage.removeItem('bulk_auth');
             sessionStorage.removeItem('bulk_pending_handle');
+            sessionStorage.removeItem('bulk_view_only');
             resetAuthUI();
+            // Reset view auth UI
+            document.getElementById('viewAuthNotConnected').classList.remove('hidden');
+            document.getElementById('viewAuthLoading').classList.add('hidden');
+            // Clear claimed section to prevent stale data
+            document.getElementById('finalUsername').textContent = '@handle';
             ['step1', 'step2', 'step3', 'step4'].forEach(s => document.getElementById(s).classList.remove('active', 'done'));
             showOnly('heroSection');
             document.getElementById('tabCards').classList.add('active');
