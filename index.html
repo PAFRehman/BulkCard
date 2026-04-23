@@ -1964,6 +1964,15 @@
                         <div class="perk"><span class="perk-icon">✦</span> Airdrop eligibility + bonus multiplier</div>
                         <div class="perk"><span class="perk-icon">✦</span> Early access to all new features</div>
                     </div>
+
+                    <!-- DOWNLOAD WITHOUT LOGIN -->
+                    <button class="btn btn-outline au3" onclick="downloadShareable('previewCard')" style="width:100%;margin-top:12px;">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Download Card
+                    </button>
+
                     <button onclick="resetSearch()"
                         style="font-family:'Space Mono',monospace;font-size:10px;color:rgba(255,255,255,0.2);cursor:none;background:none;border:none;margin-top:16px;transition:color 0.2s;letter-spacing:0.05em;"
                         onmouseover="this.style.color='var(--cream)'"
@@ -2175,6 +2184,25 @@
             </div>
         </section>
     </main>
+
+    <!-- SHAREABLE COMPOSITION WRAPPER (1200x1500 — perfect for X/IG posts) -->
+    <div id="shareableWrap" style="position:fixed;left:-9999px;top:0;z-index:-9999;opacity:0;pointer-events:none;">
+        <div style="width:1200px;height:1500px;background:var(--ink);position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:70px 0 90px;box-sizing:border-box;">
+            <div style="text-align:center;">
+                <div style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:32px;letter-spacing:0.4em;color:var(--gold);">✦ BULK</div>
+            </div>
+            
+            <div id="shareableCardContainer" style="transform:scale(1.85);transform-origin:center center;flex-shrink:0;">
+                <!-- card clone inserted here -->
+            </div>
+            
+            <div style="text-align:center;">
+                <div style="font-family:'Cormorant',serif;font-weight:700;font-style:italic;font-size:72px;color:var(--cream);line-height:1;letter-spacing:-1px;">BULK ELITE</div>
+                <div style="font-family:'Space Mono',monospace;font-size:18px;color:var(--gold);letter-spacing:0.25em;margin-top:20px;">EXCLUSIVE DROP</div>
+                <div id="shareableNum" style="font-family:'Space Mono',monospace;font-size:14px;color:rgba(242,238,228,0.35);margin-top:12px;letter-spacing:0.15em;">CARD #001</div>
+            </div>
+        </div>
+    </div>
 
     <div class="toast" id="toast"><span id="toastMsg"></span></div>
     <button id="adminBtn" onclick="openAdmin()">⚙ Admin</button>
@@ -2457,7 +2485,6 @@
             const raw = document.getElementById('usernameInput').value.trim().replace(/^@/, '');
             if (!raw) { toast('Enter your X handle', 'error'); return; }
             currentUser = null;
-            authState = null;
             showOnly('loadingSection');
             await runSteps(raw);
         }
@@ -2481,7 +2508,21 @@
                     toast('This card has already been claimed. Sign in to view.', 'info');
                 } else {
                     buildPreviewCard(currentUser);
-                    resetAuthUI();
+                    // Check if already authenticated as this user (persistent login)
+                    const savedAuth = localStorage.getItem('bulk_auth');
+                    if (savedAuth) {
+                        try {
+                            const auth = JSON.parse(savedAuth);
+                            if (auth.handle.toLowerCase() === raw.toLowerCase()) {
+                                authState = auth;
+                                showAuthUI(auth.handle, auth.pfp, auth.name);
+                            } else {
+                                resetAuthUI();
+                            }
+                        } catch(e) { resetAuthUI(); }
+                    } else {
+                        resetAuthUI();
+                    }
                     showOnly('previewSection');
                     toast('Card found! Connect X to verify.', 'info');
                 }
@@ -2549,7 +2590,7 @@
             document.getElementById('authLoading').classList.remove('hidden');
 
             try {
-                sessionStorage.setItem('bulk_pending_handle', currentUser._rawHandle || currentUser.username);
+                localStorage.setItem('bulk_pending_handle', currentUser._rawHandle || currentUser.username);
                 const res = await fetch('/.netlify/functions/get-auth-url', { credentials: 'include' });
 
                 if (!res.ok) {
@@ -2582,8 +2623,8 @@
             document.getElementById('viewAuthLoading').classList.remove('hidden');
 
             try {
-                sessionStorage.setItem('bulk_pending_handle', currentUser._rawHandle || currentUser.username);
-                sessionStorage.setItem('bulk_view_only', 'true');
+                localStorage.setItem('bulk_pending_handle', currentUser._rawHandle || currentUser.username);
+                localStorage.setItem('bulk_view_only', 'true');
                 const res = await fetch('/.netlify/functions/get-auth-url', { credentials: 'include' });
 
                 if (!res.ok) {
@@ -2613,7 +2654,7 @@
             }
         }
 
-        // FIXED: no double-decode on pfp param
+        // FIXED: no double-decode on pfp param + persistent localStorage
         function handleOAuthReturn() {
             const params = new URLSearchParams(window.location.search);
             const success = params.get('oauth_success');
@@ -2634,19 +2675,19 @@
                 const key = oauthHandle.toLowerCase();
                 const user = whitelist[key];
                 if (!user) {
-                    sessionStorage.removeItem('bulk_pending_handle');
-                    sessionStorage.removeItem('bulk_view_only');
+                    localStorage.removeItem('bulk_pending_handle');
+                    localStorage.removeItem('bulk_view_only');
                     toast('X account @' + oauthHandle + ' is not on the whitelist', 'error');
                     showIneligible();
                     return;
                 }
 
-                const viewOnly = sessionStorage.getItem('bulk_view_only') === 'true';
+                const viewOnly = localStorage.getItem('bulk_view_only') === 'true';
                 currentUser = { ...user, _rawHandle: oauthHandle };
                 authState = { handle: oauthHandle, pfp: pfpUrl || '', name: oauthName || '' };
-                sessionStorage.setItem('bulk_auth', JSON.stringify(authState));
-                sessionStorage.removeItem('bulk_pending_handle');
-                sessionStorage.removeItem('bulk_view_only');
+                localStorage.setItem('bulk_auth', JSON.stringify(authState));
+                localStorage.removeItem('bulk_pending_handle');
+                localStorage.removeItem('bulk_view_only');
 
                 if (user.claimed || viewOnly) {
                     // Show claimed section for already claimed users
@@ -2674,18 +2715,20 @@
             }
         }
 
+        // PERSISTENT LOGIN: check localStorage on every load
         function checkStoredAuth() {
-            const saved = sessionStorage.getItem('bulk_auth');
-            const pending = sessionStorage.getItem('bulk_pending_handle');
-            if (saved && pending) {
+            const saved = localStorage.getItem('bulk_auth');
+            if (saved) {
                 try {
                     authState = JSON.parse(saved);
-                    const key = pending.toLowerCase();
+                    const handle = authState.handle;
+                    if (!handle) return;
+                    const key = handle.toLowerCase();
                     if (whitelist[key]) {
-                        currentUser = { ...whitelist[key], _rawHandle: pending };
+                        currentUser = { ...whitelist[key], _rawHandle: handle };
                         if (whitelist[key].claimed) {
-                            // Already claimed - show claimed section
-                            setPfp(document.getElementById('finalPfp'), pending, whitelist[key]._pfp);
+                            // Show claimed section directly
+                            setPfp(document.getElementById('finalPfp'), handle, whitelist[key]._pfp);
                             document.getElementById('finalUsername').textContent = '@' + whitelist[key].username;
                             document.getElementById('finalNum').textContent = whitelist[key].cardNumber;
                             document.getElementById('finalTagline').textContent = whitelist[key].tagline || 'Elite Bulktrade Member';
@@ -2700,13 +2743,16 @@
                             showOnly('claimedSection');
                             toast('Welcome back to Bulk Elite', 'info');
                         } else {
+                            // Show preview with auth connected
                             buildPreviewCard(currentUser);
                             if (authState.pfp) setPfp(document.getElementById('cardPfp'), authState.handle, authState.pfp);
                             showAuthUI(authState.handle, authState.pfp, authState.name);
                             showOnly('previewSection');
                         }
                     }
-                } catch (e) { sessionStorage.removeItem('bulk_auth'); sessionStorage.removeItem('bulk_pending_handle'); sessionStorage.removeItem('bulk_view_only'); }
+                } catch (e) {
+                    localStorage.removeItem('bulk_auth');
+                }
             }
         }
 
@@ -2755,9 +2801,8 @@
             document.getElementById('userPill').style.display = 'flex';
             document.getElementById('navUname').textContent = '@' + u.username;
 
-            sessionStorage.removeItem('bulk_auth');
-            sessionStorage.removeItem('bulk_pending_handle');
-            authState = null;
+            // Keep auth in localStorage for persistent login — do NOT remove
+            localStorage.removeItem('bulk_pending_handle');
 
             showOnly('claimedSection');
             confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ['#C8A96E', '#F2EEE4', '#A8863E', '#fff'] });
@@ -2766,26 +2811,61 @@
             toast('✦ Card minted! Welcome to Bulk Elite', 'info');
         }
 
-        async function downloadCard() {
-            toast('Generating HD card...', 'info');
-            const card = document.getElementById('finalCard');
+        // SHAREABLE DOWNLOAD (1200x1500 — optimized for X/Twitter & Instagram)
+        async function downloadShareable(sourceId = 'previewCard') {
+            if (!currentUser) { toast('No card to download', 'error'); return; }
+            toast('Generating shareable card...', 'info');
+
+            const container = document.getElementById('shareableCardContainer');
+            container.innerHTML = '';
+
+            const wrapper = document.createElement('div');
+            wrapper.style.width = '360px';
+            wrapper.style.height = '540px';
+            wrapper.style.position = 'relative';
+
+            const source = document.getElementById(sourceId) || document.getElementById('previewCard');
+            const clone = source.cloneNode(true);
+            clone.id = 'shareableClone';
+            clone.style.transform = 'none';
+            clone.style.boxShadow = '0 0 80px rgba(200,169,110,0.2), 0 30px 60px rgba(0,0,0,0.8)';
+            wrapper.appendChild(clone);
+            container.appendChild(wrapper);
+
+            document.getElementById('shareableNum').textContent = 'CARD #' + currentUser.cardNumber;
+
+            const wrap = document.getElementById('shareableWrap').firstElementChild;
+
+            // Wait for images
+            const imgs = wrap.querySelectorAll('img');
+            await Promise.all([...imgs].map(img => new Promise(res => {
+                if (img.complete && img.naturalHeight !== 0) res();
+                else { img.onload = res; img.onerror = res; setTimeout(res, 3000); }
+            })));
+
             try {
-                const pfpImg = document.getElementById('finalPfp');
-                if (!pfpImg.complete || pfpImg.naturalHeight === 0) {
-                    await new Promise((res) => { pfpImg.onload = res; pfpImg.onerror = res; setTimeout(res, 2000); });
-                }
-                const canvas = await html2canvas(card, {
-                    scale: 3, backgroundColor: null, logging: false, useCORS: true, allowTaint: true, imageTimeout: 8000,
+                const canvas = await html2canvas(wrap, {
+                    scale: 2,
+                    backgroundColor: '#0e0d0a',
+                    logging: false,
+                    useCORS: true,
+                    allowTaint: true,
+                    width: 1200,
+                    height: 1500
                 });
                 const a = document.createElement('a');
                 a.download = `BULK-ELITE-${currentUser.username}-${currentUser.cardNumber}.png`;
                 a.href = canvas.toDataURL('image/png');
                 a.click();
-                toast('Downloaded! Share it on X ✦', 'info');
+                toast('Downloaded! Ready to post on X ✦', 'info');
             } catch (err) {
-                console.error('Download error:', err);
-                toast('Download failed — screenshot instead', 'error');
+                console.error(err);
+                toast('Download failed — try screenshot', 'error');
             }
+        }
+
+        async function downloadCard() {
+            await downloadShareable('finalCard');
         }
 
         function shareCard() {
@@ -2841,15 +2921,10 @@
         function resetSearch() {
             document.getElementById('usernameInput').value = '';
             currentUser = null;
-            authState = null;
-            sessionStorage.removeItem('bulk_auth');
-            sessionStorage.removeItem('bulk_pending_handle');
-            sessionStorage.removeItem('bulk_view_only');
+            // Do NOT clear authState or localStorage auth — persistent login stays
             resetAuthUI();
-            // Reset view auth UI
             document.getElementById('viewAuthNotConnected').classList.remove('hidden');
             document.getElementById('viewAuthLoading').classList.add('hidden');
-            // Clear claimed section to prevent stale data
             document.getElementById('finalUsername').textContent = '@handle';
             ['step1', 'step2', 'step3', 'step4'].forEach(s => document.getElementById(s).classList.remove('active', 'done'));
             showOnly('heroSection');
